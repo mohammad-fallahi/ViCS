@@ -3,6 +3,20 @@
 #include<stdio.h>
 #include<dirent.h>
 #include "commands.h"
+#include "constants.h"
+
+int validate_command(char* command) {
+    char copy[500] = "";
+    strcpy(copy, command);
+    char* token = strtok(copy, " \n\0");
+    if(strcmp(token, "vics")) return 0;
+    token = strtok(NULL, " \n\0");
+    if(token == NULL) return 1;
+    for(int i = 0 ; i < COMMANDS_COUNT ; i++) {
+        if(!strcmp(token, COMMANDS[i])) return 1;
+    }
+    return 0;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -12,18 +26,34 @@ int main(int argc, char *argv[]) {
     if(!strcmp(argv[1], "config")) {
         int error;
         if(strcmp(argv[2], "-global")) {
-            if(strcmp(argv[2], "user.name") && strcmp(argv[2], "user.email")) {
-                printf("invalid command\n");
+
+            if(strstr(argv[2], "user") == argv[2]) {
+                error = config(argv[2], argv[3], 0);
+            } else if(strstr(argv[2], "alias") == argv[2]) {
+                error = !validate_command(argv[3]);
+                if(!error) error = add_alias(argv[2], argv[3], 0);
+                else printf("could not make alias: invalid alias command\n");
+            } else {
                 error = 1;
-            }
-            else error = config(argv[2], argv[3], 0);
-        } else {
-            if(strcmp(argv[3], "user.name") && strcmp(argv[3], "user.email")) {
                 printf("invalid command\n");
-                error = 1;
             }
-            else error = config(argv[3], argv[4], 1);
+            
+        } else if(!strcmp(argv[2], "-global")) {
+
+            if(strstr(argv[3], "user") == argv[3]) {
+                error = config(argv[3], argv[4], 1);
+            } else if(strstr(argv[3], "alias") == argv[3]) {
+                error = !validate_command(argv[4]);
+                if(!error) error = add_alias(argv[3], argv[4], 1);
+                else printf("could not make alias: invalid alias command\n");
+            } else {
+                error = 1;
+                printf("invalid command\n");
+            }
+
         }
+
+
         if(error) {
             printf("an error occured.\n");
         } else {
