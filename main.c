@@ -1,7 +1,5 @@
 // Mohammad Fallahinezhad
 // 402106304
-#include<stdio.h>
-#include<dirent.h>
 #include "commands.h"
 #include "constants.h"
 
@@ -59,6 +57,14 @@ int main(int argc, char *argv[]) {
         } else {
             printf("data updated successfully.\n");
         }
+    }
+
+    if(!strcmp(argv[1], "init")) {
+
+        int error = init();
+        if(error) printf("you are inside a vics project and can not initialize another project.\n");
+        else printf("welcome to ViCS!\n");
+
     }
 
     return 0;

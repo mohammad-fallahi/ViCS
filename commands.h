@@ -1,8 +1,10 @@
 // Mohammad Fallahinezhad
 // 402106304
 #include<stdio.h>
-#include<dirent.h>
 #include<string.h>
+#include<dirent.h>
+#include<windows.h>
+#include<unistd.h>
 
 int config(char* info, char* value, int global) {
     char main_file_path[500], tmp_file_path[500];
@@ -98,3 +100,36 @@ int add_alias(char* info, char* value, int global) {
     return 0;
 } // TODO: OPEN .VICS DIRECTORY FROM PARENT DIRECTORIES(AFTER VICS INIT COMMAND IMPLEMENTED)
 
+int check_initial_dir_existence() {
+    int found = 0, root = 0;
+    do {
+        root = 1;
+        DIR* cwd = opendir(".");
+        struct dirent* entry;
+        while(entry = readdir(cwd)) {
+            if(!strcmp(entry->d_name, ".vics")) {
+                found = 1; break;
+            }
+            if(!strcmp(entry->d_name, "..")) root = 0;
+        }
+        closedir(cwd);
+        chdir("..");
+        if(found) break;
+        
+    } while(!root);
+    return found;
+}
+
+int init() {
+    int error;
+    char current_path[500];
+    getcwd(current_path, sizeof(current_path));
+    error = check_initial_dir_existence();
+    chdir(current_path);
+    if(error) return 1;
+    else {
+        CreateDirectory(".vics", NULL);
+        SetFileAttributes(".vics", FILE_ATTRIBUTE_HIDDEN);
+        return 0;
+    }
+}
