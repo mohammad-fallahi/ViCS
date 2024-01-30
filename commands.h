@@ -101,6 +101,8 @@ int add_alias(char* info, char* value, int global) {
 } // TODO: OPEN .VICS DIRECTORY FROM PARENT DIRECTORIES(AFTER VICS INIT COMMAND IMPLEMENTED)
 
 int check_initial_dir_existence() {
+    char current_path[500];
+    getcwd(current_path, sizeof(current_path));
     int found = 0, root = 0;
     do {
         root = 1;
@@ -117,15 +119,13 @@ int check_initial_dir_existence() {
         if(found) break;
         
     } while(!root);
+    chdir(current_path);
     return found;
 }
 
 int init() {
     int error;
-    char current_path[500];
-    getcwd(current_path, sizeof(current_path));
     error = check_initial_dir_existence();
-    chdir(current_path);
     if(error) return 1;
     else {
         CreateDirectory(".vics", NULL);

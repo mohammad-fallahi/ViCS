@@ -22,7 +22,14 @@ int main(int argc, char *argv[]) {
         printf("Thanks for choosing ViCS!\n");
     }
     if(!strcmp(argv[1], "config")) {
+
         int error;
+        int initialized = check_initial_dir_existence();
+        if(!initialized) {
+            printf("no ViCS project is initialized in this folder or its parent.\n");
+            error = 1;
+            goto FINAL;
+        }
         if(strcmp(argv[2], "-global")) {
 
             if(strstr(argv[2], "user") == argv[2]) {
@@ -51,7 +58,7 @@ int main(int argc, char *argv[]) {
 
         }
 
-
+        FINAL:
         if(error) {
             printf("an error occured.\n");
         } else {
