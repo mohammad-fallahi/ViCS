@@ -7,6 +7,19 @@
 #include<sys/stat.h>
 #include<unistd.h>
 
+int is_file(char *path) {
+    struct stat s;
+    if (stat(path, &s) == 0) 
+    {
+        if (s.st_mode & S_IFDIR) 
+            return 0;
+        else if (s.st_mode & S_IFREG) 
+            return 1;
+    }
+    else
+        return -1;
+}
+
 int check_initial_dir_existence() {
     char current_path[500];
     getcwd(current_path, sizeof(current_path));
@@ -51,6 +64,11 @@ void get_vics_folder(char* buffer) {
     } while(!root);
     chdir(current_path);
     strcat(buffer, ".vics");
+}
+
+void get_staging_folder(char* buffer) {
+    get_vics_folder(buffer);
+    strcat(buffer, "/staging/");
 }
 
 int config(char* info, char* value, int global) {
@@ -200,25 +218,39 @@ void copy_file(char* path, char* dest) {
     fclose(from); fclose(to);
 }
 
+void extract_file_name(char* result, char* path) {
+    strcpy(result, path);
+    
+    strrev(result);
+    char* pos = strstr(result, "/");
+    if(pos == NULL) pos = strstr(result, "\\");
+    if(pos == NULL) {
+        strrev(result);
+    } else {
+        result[pos - result] = '\0';
+        strrev(result);
+    }
+}
+
 int stage_file(char* path) {
     char dest[500] = "";
-    char tmp[500] = ""; strcpy(tmp, path);
-    
-    strrev(tmp);
-    char* pos = strstr(tmp, "/");
-    if(pos == NULL) pos = strstr(tmp, "\\");
-    if(pos == NULL) {
-        strrev(tmp);
-    } else {
-        tmp[pos - tmp] = '\0';
-        strrev(tmp);
-    }
+    char tmp[500] = ""; extract_file_name(tmp, path);
 
-    get_vics_folder(dest); strcat(dest, "/staging/"); strcat(dest, tmp);
+    get_staging_folder(dest); strcat(dest, tmp);
 
     int equal = check_equality(path, dest);
     if(equal) return 0;
 
     copy_file(path, dest);
+    return 1;
+}
+
+int unstage_file(char* path) {
+
+    char tmp[500] = ""; extract_file_name(tmp, path);
+    char dest[500] = ""; get_staging_folder(dest); strcat(dest, tmp);
+    
+    if(is_file(dest) == -1) return 0;
+    remove(dest);
     return 1;
 }

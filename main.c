@@ -16,18 +16,6 @@ int validate_command(char* command) {
     return 0;
 }
 
-int is_file(char *path) {
-    struct stat s;
-    if (stat(path, &s) == 0) 
-    {
-        if (s.st_mode & S_IFDIR) 
-            return 0;
-        else if (s.st_mode & S_IFREG) 
-            return 1;
-    }
-    else
-        return -1;
-}
 
 int main(int argc, char *argv[]) {
 
@@ -96,7 +84,7 @@ int main(int argc, char *argv[]) {
             goto ADD_END;
         }
         if(!strcmp(argv[2], "-n")) {
-            char staging_folder_path[500] = ""; get_vics_folder(staging_folder_path); strcat(staging_folder_path, "/staging/");
+            char staging_folder_path[500] = ""; get_staging_folder(staging_folder_path);
 
             DIR* dir = opendir(".");
             struct dirent* entry;
@@ -142,11 +130,48 @@ int main(int argc, char *argv[]) {
         }
 
 
-    ADD_END:
-    if(error) printf("an error occured.\n");
+        ADD_END:
+        if(error) printf("an error occured.\n");
 
     }
     // TODO: compare with the last commit to check if a file is changed
+
+    if(!strcmp(argv[1], "reset")) {
+        int error = 0;
+        int initialized = check_initial_dir_existence();
+        if(!initialized) {
+            printf("no ViCS project is initialized in this folder or its parent.\n");
+            error = 1;
+            goto RESET_END;
+        }
+
+        for(int i = 2 + (!strcmp(argv[2], "-f")) ; i < argc ; i++) {
+            if(is_file(argv[i]) == 1) {
+                int result = unstage_file(argv[i]);
+                if(result) printf("%s: unstaged successfully.\n", argv[i]);
+                else printf("%s: unstaging was unsuccessful.\n", argv[i]);
+            } else if(is_file(argv[i]) == 0) {
+                DIR* dir = opendir(argv[i]);
+                char dir_path[500]; strcpy(dir_path, argv[i]);
+                int files_unstaged = 0;
+                struct dirent* entry;
+                while(entry = readdir(dir)) {
+                    char file_path[500]; strcpy(file_path, dir_path); strcat(file_path, "/"); strcat(file_path, entry->d_name);
+                    if(is_file(file_path) == 1) {
+                        files_unstaged += unstage_file(file_path);
+                    }
+                }
+                closedir(dir);
+                printf("%s: %d files unstaged successfully.\n", argv[i], files_unstaged);
+            } else {
+                printf("%s: no such file or directory.\n", argv[i]);
+            }
+        }
+
+
+        RESET_END:
+        if(error) printf("an error occured.\n");
+    }
 
     return 0;
 }
