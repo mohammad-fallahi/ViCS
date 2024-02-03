@@ -88,30 +88,65 @@ int main(int argc, char *argv[]) {
     }
 
     if(!strcmp(argv[1], "add")) {
-
-        for(int i = 2 + (!strcmp(argv[2], "-f")) ; i < argc ; i++) {
-            int result;
-            if(is_file(argv[i]) == 1) {
-                result = stage_file(argv[i]);
-                if(result) printf("%s: added successfully.\n", argv[i]);
-                else printf("%s: adding was unsuccessful.\n", argv[i]);
-            } else if(is_file(argv[i]) == 0){
-                DIR* dir = opendir(argv[i]);
-                char dir_path[500]; strcpy(dir_path, argv[i]);
-                int files_added = 0;
-                struct dirent* entry;
-                while(entry = readdir(dir)) {
-                    char file_path[500]; strcpy(file_path, dir_path); strcat(file_path, "/"); strcat(file_path, entry->d_name);
-                    if(is_file(file_path) == 1) {
-                        files_added += stage_file(file_path);
-                    }
-                }
-                closedir(dir);
-                printf("%s: %d files added successfully.\n", argv[i], files_added);
-            } else {
-                printf("%s: no such file or directory.\n", argv[i]);
-            }   
+        int error = 0;
+        int initialized = check_initial_dir_existence();
+        if(!initialized) {
+            printf("no ViCS project is initialized in this folder or its parent.\n");
+            error = 1;
+            goto ADD_END;
         }
+        if(!strcmp(argv[2], "-n")) {
+            char staging_folder_path[500] = ""; get_vics_folder(staging_folder_path); strcat(staging_folder_path, "/staging/");
+
+            DIR* dir = opendir(".");
+            struct dirent* entry;
+            char dir_path[500]; getcwd(dir_path, sizeof(dir_path));
+            while(entry = readdir(dir)) {
+                char file_path[500]; strcpy(file_path, dir_path); strcat(file_path, "/"); strcat(file_path, entry->d_name);
+                if(is_file(file_path) == 1) {
+                    DIR* vics = opendir(staging_folder_path);
+                    int is_staging = 0;
+                    struct dirent* staged;
+                    while(staged = readdir(vics)) {
+                        char staged_path[500]; strcpy(staged_path, staging_folder_path); strcat(staged_path, staged->d_name);
+                        if(is_file(staged_path) == 1) is_staging |= check_equality(staged_path, file_path);
+                    }
+                    closedir(vics);
+                    if(is_staging) printf("%s: is staged.\n", entry->d_name);
+                    else printf("%s: is not staged.\n", entry->d_name);
+                }
+            }
+            closedir(dir);
+
+        } else {
+            for(int i = 2 + (!strcmp(argv[2], "-f")) ; i < argc ; i++) {
+                int result;
+                if(is_file(argv[i]) == 1) {
+                    result = stage_file(argv[i]);
+                    if(result) printf("%s: added successfully.\n", argv[i]);
+                    else printf("%s: adding was unsuccessful.\n", argv[i]);
+                } else if(is_file(argv[i]) == 0){
+                    DIR* dir = opendir(argv[i]);
+                    char dir_path[500]; strcpy(dir_path, argv[i]);
+                    int files_added = 0;
+                    struct dirent* entry;
+                    while(entry = readdir(dir)) {
+                        char file_path[500]; strcpy(file_path, dir_path); strcat(file_path, "/"); strcat(file_path, entry->d_name);
+                        if(is_file(file_path) == 1) {
+                            files_added += stage_file(file_path);
+                        }
+                    }
+                    closedir(dir);
+                    printf("%s: %d files added successfully.\n", argv[i], files_added);
+                } else {
+                    printf("%s: no such file or directory.\n", argv[i]);
+                }   
+            }
+        }
+
+
+    ADD_END:
+    if(error) printf("an error occured.\n");
 
     }
 
