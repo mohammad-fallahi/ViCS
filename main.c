@@ -100,18 +100,15 @@ int main(int argc, char *argv[]) {
 
             DIR* dir = opendir(".");
             struct dirent* entry;
-            char dir_path[500]; getcwd(dir_path, sizeof(dir_path));
             while(entry = readdir(dir)) {
-                char file_path[500]; strcpy(file_path, dir_path); strcat(file_path, "/"); strcat(file_path, entry->d_name);
-                if(is_file(file_path) == 1) {
-                    DIR* vics = opendir(staging_folder_path);
+                if(is_file(entry->d_name) == 1) {
+                    DIR* staging_area = opendir(staging_folder_path);
                     int is_staging = 0;
                     struct dirent* staged;
-                    while(staged = readdir(vics)) {
-                        char staged_path[500]; strcpy(staged_path, staging_folder_path); strcat(staged_path, staged->d_name);
-                        if(is_file(staged_path) == 1) is_staging |= check_equality(staged_path, file_path);
+                    while(staged = readdir(staging_area)) {
+                        if(is_file(staged->d_name) == 1) is_staging |= !strcmp(staged->d_name, entry->d_name);
                     }
-                    closedir(vics);
+                    closedir(staging_area);
                     if(is_staging) printf("%s: is staged.\n", entry->d_name);
                     else printf("%s: is not staged.\n", entry->d_name);
                 }
@@ -149,6 +146,7 @@ int main(int argc, char *argv[]) {
     if(error) printf("an error occured.\n");
 
     }
+    // TODO: compare with the last commit to check if a file is changed
 
     return 0;
 }
