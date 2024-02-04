@@ -321,6 +321,17 @@ void extract_file_name(char* result, char* path) {
     }
 }
 
+void go_to(char* path) {
+    char copy[500]; strcpy(copy, path);
+    char* token = strtok(copy, "\\/");
+    while(token) {
+        if(is_file(token) == 0) {
+            chdir(token);
+        }
+        token = strtok(NULL, "\\/");
+    }
+}
+
 int stage_file(char* path) {
     char dest[500] = "";
     char tmp[500] = ""; extract_file_name(tmp, path);
@@ -331,6 +342,19 @@ int stage_file(char* path) {
     if(equal) return 0;
 
     copy_file(path, dest);
+
+    char cur_path[500]; getcwd(cur_path, sizeof(cur_path));
+    go_to(path);
+    char file_absolute_path[500]; getcwd(file_absolute_path, sizeof(file_absolute_path)); 
+    strcat(file_absolute_path, "\\");
+    strcat(file_absolute_path, tmp);
+    char filenames[500] = ""; get_staging_folder(filenames);
+    strcat(filenames, "file-paths/"); strcat(filenames, tmp);
+    FILE* f = fopen(filenames, "w");
+    fprintf(f, "%s\n", file_absolute_path);
+    fclose(f);
+    chdir(cur_path);
+
     return 1;
 }
 
@@ -341,6 +365,8 @@ int unstage_file(char* path) {
     
     if(is_file(dest) == -1) return 0;
     remove(dest);
+    char ch[500]; get_staging_folder(ch); strcat(ch, "file-paths/"); strcat(ch, tmp);
+    remove(ch);
     return 1;
 }
 
@@ -384,6 +410,9 @@ void commit(char* message, char* result_path) {
     fprintf(cmt, "author:%s - %s\n", name, email);
 
     // TODO: commiting :)
+
+
+
     fclose(cmt);
 
     char ttt[500]; getcwd(ttt, sizeof(ttt));
