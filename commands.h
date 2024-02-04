@@ -6,6 +6,8 @@
 #include<windows.h>
 #include<sys/stat.h>
 #include<unistd.h>
+#include<time.h>
+#include "constants.h"
 
 int is_file(char *path) {
     struct stat s;
@@ -69,6 +71,74 @@ void get_vics_folder(char* buffer) {
 void get_staging_folder(char* buffer) {
     get_vics_folder(buffer);
     strcat(buffer, "/staging/");
+}
+
+void get_name(char* res) {
+    char info_path[500] = ""; get_vics_folder(info_path);
+    strcat(info_path, "/user-info.txt");
+    FILE* info = fopen(info_path, "r");
+    int found = 0;
+    if(info != NULL) {
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), info)) {
+            int pos = strstr(buffer, ":") - buffer;
+            if(!strncmp(buffer, "user.name", pos)) {
+                strcpy(res, buffer + pos + 1);
+                if(res[strlen(res)-1] == '\n') res[strlen(res)-1] = 0;
+                found = 1;
+                break;
+            }
+        }
+    } 
+    if(!found) {
+        info = fopen("D:/uni/fop/project/ViCS/global/user-info.txt", "r");
+        if(info != NULL) {
+            char buffer[100];
+            while(fgets(buffer, sizeof(buffer), info)) {
+                int pos = strstr(buffer, ":") - buffer;
+                if(!strncmp(buffer, "user.name", pos)) {
+                    strcpy(res, buffer + pos + 1);
+                    if(res[strlen(res)-1] == '\n') res[strlen(res)-1] = 0;
+                    break;
+                }
+            }
+        }
+    }
+    fclose(info);
+}
+
+void get_email(char* res) {
+    char info_path[500] = ""; get_vics_folder(info_path);
+    strcat(info_path, "/user-info.txt");
+    FILE* info = fopen(info_path, "r");
+    int found = 0;
+    if(info != NULL) {
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), info)) {
+            int pos = strstr(buffer, ":") - buffer;
+            if(!strncmp(buffer, "user.email", pos)) {
+                strcpy(res, buffer + pos + 1);
+                if(res[strlen(res)-1] == '\n') res[strlen(res)-1] = 0;
+                found = 1;
+                break;
+            }
+        }
+    }
+    if(!found) {
+        info = fopen("D:/uni/fop/project/ViCS/global/user-info.txt", "r");
+        if(info != NULL) {
+            char buffer[100];
+            while(fgets(buffer, sizeof(buffer), info)) {
+                int pos = strstr(buffer, ":") - buffer;
+                if(!strncmp(buffer, "user.email", pos)) {
+                    strcpy(res, buffer + pos + 1);
+                    if(res[strlen(res)-1] == '\n') res[strlen(res)-1] = 0;
+                    break;
+                }
+            }
+        }
+    }
+    fclose(info);
 }
 
 int config(char* info, char* value, int global) {
@@ -253,4 +323,40 @@ int unstage_file(char* path) {
     if(is_file(dest) == -1) return 0;
     remove(dest);
     return 1;
+}
+
+int info_incomplete() {
+
+    char name[100] = "", email[100] = "";
+    get_name(name); get_email(email);
+    return !(strlen(name) && strlen(email));
+
+}
+
+void commit(char* message, char* result_path) {
+    last_commit++;
+    char commit_path[500] = "", cur_path[500]; getcwd(cur_path, sizeof(cur_path));
+    get_vics_folder(commit_path); strcat(commit_path, "/commits/");
+    chdir(commit_path);
+    char lstcmt[10]; sprintf(lstcmt, "%d", last_commit);
+    mkdir(lstcmt);
+    strcat(commit_path, lstcmt); chdir(lstcmt);
+    mkdir("contents");
+    
+    FILE* cmt = fopen("info.txt", "w");
+
+    fprintf(cmt, "message:%s\n", message);
+    time_t t = time(NULL);
+    struct tm tyme = *localtime(&t);
+    fprintf(cmt, "date-time:%d.%02d.%02d - %02d:%02d:%02d\n", tyme.tm_year + 1900, tyme.tm_mon+1, tyme.tm_mday, tyme.tm_hour, tyme.tm_min, tyme.tm_sec);
+    fprintf(cmt, "id:%03d%03d\n", cur_branch, last_commit);
+
+    char name[100] = "", email[100] = "";
+    get_name(name); get_email(email);
+    fprintf(cmt, "author:%s - %s\n", name, email);
+
+    // TODO: commiting :)
+    fclose(cmt);
+
+    chdir(cur_path);
 }

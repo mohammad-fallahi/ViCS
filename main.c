@@ -1,7 +1,7 @@
 // Mohammad Fallahinezhad
 // 402106304
 #include "commands.h"
-#include "constants.h"
+// #include "constants.h"
 
 int validate_command(char* command) {
     char copy[500] = "";
@@ -168,10 +168,63 @@ int main(int argc, char *argv[]) {
             }
         }
 
-
         RESET_END:
         if(error) printf("an error occured.\n");
     }
+    // TODO: reset -undo
+
+    if(!strcmp(argv[1], "commit")) {
+        int error = 0;
+        int initialized = check_initial_dir_existence();
+        if(!initialized) {
+            printf("no ViCS project is initialized in this folder or its parent.\n");
+            error = 1;
+            goto COMMIT_END;
+        }
+        
+        if(argc > 4) {
+            printf("invalid usage of commit command.\n");
+            error = 1; goto COMMIT_END;
+        }
+        if(argc <= 3) {
+            printf("please enter commit message.\n");
+            error = 1; goto COMMIT_END;
+        }
+        if(strcmp(argv[2], "-m")) {
+            printf("invalid usage of commit command.\n");
+            error = 1; goto COMMIT_END;
+        }
+
+        if(strlen(argv[3]) > 72) {
+            printf("long commit message. commit message should be at most 72 characters long.\n");
+            error = 1;
+            goto COMMIT_END;
+        }
+
+        if(info_incomplete()) {
+            printf("please set your user name and email with 'vics config' and try again.\n");
+            error = 1;
+            goto COMMIT_END;
+        }
+
+        char commit_file_path[500];
+        commit(argv[3], commit_file_path);
+        printf("commited successfully.\n");
+
+        FILE* commit_file = fopen(commit_file_path, "r");
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_file)) {
+            int pos = strstr(buffer, ":") - buffer;
+            if(!strncmp(buffer, "id", pos+1)) printf("%s", buffer);
+            if(!strncmp(buffer, "message", pos+1)) printf("%s", buffer);
+            if(!strncmp(buffer, "date-time", pos+1)) printf("%s", buffer);
+        }
+        fclose(commit_file);
+
+        COMMIT_END:
+        if(error) printf("an error occured.\n");
+    }
+
 
     return 0;
 }
