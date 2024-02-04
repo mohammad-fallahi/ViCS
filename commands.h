@@ -73,6 +73,11 @@ void get_staging_folder(char* buffer) {
     strcat(buffer, "/staging/");
 }
 
+void get_commits_folder(char* buffer) {
+    get_vics_folder(buffer);
+    strcat(buffer, "/commits/");
+}
+
 void get_name(char* res) {
     char info_path[500] = ""; get_vics_folder(info_path);
     strcat(info_path, "/user-info.txt");
@@ -255,6 +260,20 @@ int init() {
         CreateDirectory("staging", NULL);
         chdir("..");
 
+        // creating "commits" inside .vics:
+        chdir(".vics");
+        CreateDirectory("commits", NULL);
+        FILE* file = fopen("commits/number-of-commits.txt", "w");
+        fprintf(file, "0\n");
+        fclose(file);
+        chdir("commits");
+        CreateDirectory("0", NULL);
+        chdir("0");
+        CreateDirectory("contents", NULL);
+        chdir("..");
+        chdir("..");
+        chdir("..");
+
         return 0;
     }
 }
@@ -334,9 +353,18 @@ int info_incomplete() {
 }
 
 void commit(char* message, char* result_path) {
+    int last_commit;
+    char tmp[500] = ""; get_commits_folder(tmp); strcat(tmp, "number-of-commits.txt");
+    FILE* f = fopen(tmp, "r");
+    fscanf(f, "%d", &last_commit);
+    fclose(f);
     last_commit++;
+    f = fopen(tmp, "w");
+    fprintf(f, "%d\n", last_commit);
+    fclose(f);
+
     char commit_path[500] = "", cur_path[500]; getcwd(cur_path, sizeof(cur_path));
-    get_vics_folder(commit_path); strcat(commit_path, "/commits/");
+    get_commits_folder(commit_path);
     chdir(commit_path);
     char lstcmt[10]; sprintf(lstcmt, "%d", last_commit);
     mkdir(lstcmt);
@@ -357,6 +385,10 @@ void commit(char* message, char* result_path) {
 
     // TODO: commiting :)
     fclose(cmt);
+
+    char ttt[500]; getcwd(ttt, sizeof(ttt));
+    strcpy(result_path, ttt);
+    strcat(result_path, "/info.txt");
 
     chdir(cur_path);
 }

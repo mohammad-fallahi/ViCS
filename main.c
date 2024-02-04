@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
             goto COMMIT_END;
         }
 
-        char commit_file_path[500];
+        char commit_file_path[500] = "";
         commit(argv[3], commit_file_path);
         printf("commited successfully.\n");
 
@@ -215,9 +215,9 @@ int main(int argc, char *argv[]) {
         char buffer[100];
         while(fgets(buffer, sizeof(buffer), commit_file)) {
             int pos = strstr(buffer, ":") - buffer;
-            if(!strncmp(buffer, "id", pos+1)) printf("%s", buffer);
-            if(!strncmp(buffer, "message", pos+1)) printf("%s", buffer);
-            if(!strncmp(buffer, "date-time", pos+1)) printf("%s", buffer);
+            if(!strncmp(buffer, "id", pos)) printf("%s", buffer);
+            if(!strncmp(buffer, "message", pos)) printf("%s", buffer);
+            if(!strncmp(buffer, "date-time", pos)) printf("%s", buffer);
         }
         fclose(commit_file);
 
