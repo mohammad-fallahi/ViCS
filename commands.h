@@ -622,6 +622,7 @@ void no_condition_log() {
         printf("\tmessage: %s\n", message);
         printf("\ton branch: %s\n", branch);
         printf("\t%s files commited.\n", cnt);
+        printf("***************************************\n");
     }
 
 }
@@ -672,6 +673,7 @@ void numbered_log(int n) {
         printf("\tmessage: %s\n", message);
         printf("\ton branch: %s\n", branch);
         printf("\t%s files commited.\n", cnt);
+        printf("***************************************\n");
     }
 }
 
@@ -721,6 +723,7 @@ void branched_log(char* br) {
         printf("\tmessage: %s\n", message);
         printf("\ton branch: %s\n", branch);
         printf("\t%s files commited.\n", cnt);
+        printf("***************************************\n");
     }
 }
 
@@ -772,6 +775,7 @@ void named_log(char* name) {
         printf("\tmessage: %s\n", message);
         printf("\ton branch: %s\n", branch);
         printf("\t%s files commited.\n", cnt);
+        printf("***************************************\n");
     }
 
 }
@@ -823,6 +827,7 @@ void search_log(char* target) {
         printf("\tmessage: %s\n", message);
         printf("\ton branch: %s\n", branch);
         printf("\t%s files commited.\n", cnt);
+        printf("***************************************\n");
     }
 }
 
@@ -880,6 +885,7 @@ void since_log(char* date) {
         printf("\tmessage: %s\n", message);
         printf("\ton branch: %s\n", branch);
         printf("\t%s files commited.\n", cnt);
+        printf("***************************************\n");
     }
 }
 
@@ -937,5 +943,6 @@ void before_log(char* date) {
         printf("\tmessage: %s\n", message);
         printf("\ton branch: %s\n", branch);
         printf("\t%s files commited.\n", cnt);
+        printf("***************************************\n");
     }
 }
