@@ -286,7 +286,26 @@ int init() {
         chdir("..");
         chdir("..");
 
+        // creating branches file:
+        chdir(".vics");
+        FILE* br = fopen("branches.txt", "w");
+        fprintf(br, "master\n");
+        fclose(br);
+        chdir("..");
+
         return 0;
+    }
+}
+
+void load_branches() {
+    char branches[500] = ""; get_vics_folder(branches); strcat(branches, "/");
+    strcat(branches, "branches.txt");
+    FILE* branch_list = fopen(branches, "r");
+    char buffer[50];
+    while(fgets(buffer, sizeof(buffer), branch_list)) {
+        if(buffer[strlen(buffer)-1] == '\n') buffer[strlen(buffer)-1] = 0;
+        strcpy(BRANCHES[branch_count], buffer);
+        branch_count++;
     }
 }
 
@@ -946,3 +965,16 @@ void before_log(char* date) {
         printf("***************************************\n");
     }
 }
+
+void add_branch(char* name) {
+
+    char branches[500] = ""; get_vics_folder(branches); strcat(branches, "/");
+    strcat(branches, "branches.txt");
+    FILE* branch_list = fopen(branches, "a");
+    fprintf(branch_list, "%s\n", name);
+    fclose(branch_list);
+    strcpy(BRANCHES[branch_count++], name);
+
+    printf("new branch created successfully.\n");
+}
+

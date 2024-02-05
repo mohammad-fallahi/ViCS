@@ -29,6 +29,14 @@ int main(int argc, char *argv[]) {
     if(argc == 1) {
         printf("Thanks for choosing ViCS!\n");
     }
+
+    if(!check_initial_dir_existence()) {
+        printf("no ViCS project is initialized in this folder or its parent.\n");
+        return 0;
+    }
+
+    load_branches();
+
     if(!strcmp(argv[1], "config")) {
 
         int error;
@@ -284,8 +292,34 @@ int main(int argc, char *argv[]) {
                 before_log(argv[3]);
             }
         }
-        
+
         LOG_END:
+        if(error) printf("an error occured.\n");
+    }
+
+    if(!strcmp(argv[1], "branch")) {
+        int error = 0;
+
+        if(argc == 2) {
+            printf("all branches:\n");
+            for(int i = 0 ; i < branch_count ; i++) {
+                printf("%s\n", BRANCHES[i]);
+            }
+        } else {
+            int exists = 0;
+            for(int i = 0 ; i < branch_count ; i++) {
+                if(!strcmp(argv[2], BRANCHES[i])) {
+                    exists = 1; break;
+                }
+            }
+            if(exists) {
+                printf("a branch with this name already exists.\n");
+                error = 1; goto BRANCH_END;
+            }
+            add_branch(argv[2]);
+        }
+
+        BRANCH_END:
         if(error) printf("an error occured.\n");
     }
 
