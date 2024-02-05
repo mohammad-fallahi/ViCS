@@ -30,12 +30,20 @@ int main(int argc, char *argv[]) {
         printf("Thanks for choosing ViCS!\n");
     }
 
+    if(!strcmp(argv[1], "init")) {
+
+        int error = init();
+        if(error) printf("you are inside a vics project and can not initialize another project.\n");
+        else printf("welcome to ViCS!\n");
+
+    }
+    
     if(!check_initial_dir_existence()) {
         printf("no ViCS project is initialized in this folder or its parent.\n");
         return 0;
     }
 
-    load_branches();
+    load_initials();
 
     if(!strcmp(argv[1], "config")) {
 
@@ -82,13 +90,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if(!strcmp(argv[1], "init")) {
-
-        int error = init();
-        if(error) printf("you are inside a vics project and can not initialize another project.\n");
-        else printf("welcome to ViCS!\n");
-
-    }
 
     if(!strcmp(argv[1], "add")) {
         int error = 0;
@@ -322,6 +323,43 @@ int main(int argc, char *argv[]) {
         BRANCH_END:
         if(error) printf("an error occured.\n");
     }
+
+    // if(!strcmp(argv[1], "checkout")) {
+    //     int error = 0;
+
+    //     if(argc == 2) {
+    //         printf("invalid usage of command.\n");
+    //         error = 1; goto CHECKOUT_END;
+    //     }
+
+    //     int is_commit = 1;
+    //     for(int i = 0 ; argv[2][i] ; i++) {
+    //         if(argv[2][i] < '0' || argv[2][i] > '9') {
+    //             is_commit = 0; break;
+    //         }
+    //     }
+    //     if(!strcmp(argv[2], "HEAD")) is_commit = 1;
+
+    //     if(!is_commit) {
+    //         int exists = 0;
+    //         for(int i = 0 ; i < branch_count ; i++) {
+    //             if(!strcmp(BRANCHES[i], argv[2])) {
+    //                 exists = 1; break;
+    //             }
+    //         }
+    //         if(!exists) {
+    //             printf("there is no branch with this name.\n");
+    //             error = 1; goto CHECKOUT_END;
+    //         }
+    //         checkout_branch(argv[2]);
+    //     } else {
+    //         checkout_commit(argv[2]);
+    //     }
+
+    //     CHECKOUT_END:
+    //     if(error) printf("an error occured.\n");
+    // }
+
 
     return 0;
 }
