@@ -16,6 +16,13 @@ int validate_command(char* command) {
     return 0;
 }
 
+int check_date_format(char* date) {
+    if(strlen(date) != 10) return 0;
+    if(date[4] != '.' || date[7] != '.') return 0;
+    for(int i = 0 ; i < 10 ; i++) if(i != 4 && i != 7 && !(date[i] >= '0' && date[i] <= '9')) return 0;
+    return 1;
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -225,6 +232,62 @@ int main(int argc, char *argv[]) {
         if(error) printf("an error occured.\n");
     }
 
+    if(!strcmp(argv[1], "log")) {
+        int error = 0;
+        int initialized = check_initial_dir_existence();
+        if(!initialized) {
+            printf("no ViCS project is initialized in this folder or its parent.\n");
+            error = 1;
+            goto LOG_END;
+        }
+
+        if(argc == 2) {
+            no_condition_log();
+        } else {
+
+            if(!strcmp(argv[2], "-n")) {
+                int c; sscanf(argv[3], "%d", &c);
+                numbered_log(c);
+            }
+            if(!strcmp(argv[2], "-branch")) {
+                int is_valid = 0;
+                for(int i = 0 ; i < branch_count ; i++) {
+                    if(!strcmp(BRANCHES[i], argv[3])) {
+                        is_valid = 1; break;
+                    }
+                }
+                if(!is_valid) {
+                    printf("no such branch.\n");
+                    error = 1; goto LOG_END;
+                } else {
+                    branched_log(argv[3]);
+                }
+            }
+            if(!strcmp(argv[2], "-author")) {
+                named_log(argv[3]);
+            }
+            if(!strcmp(argv[2], "-search")) {
+                search_log(argv[3]);
+            }
+            if(!strcmp(argv[2], "-since")) {
+                if(!check_date_format(argv[3])) {
+                    printf("wrong date format. please input date in format YYYY.MM.DD\n");
+                    error = 1; goto LOG_END;
+                }
+                since_log(argv[3]);
+            }
+            if(!strcmp(argv[2], "-before")) {
+                if(!check_date_format(argv[3])) {
+                    printf("wrong date format. please input date in format YYYY.MM.DD\n");
+                    error = 1; goto LOG_END;
+                }
+                before_log(argv[3]);
+            }
+        }
+        
+        LOG_END:
+        if(error) printf("an error occured.\n");
+    }
 
     return 0;
 }

@@ -146,6 +146,15 @@ void get_email(char* res) {
     fclose(info);
 }
 
+int get_last_commit() {
+    int last_commit;
+    char tmp[500] = ""; get_commits_folder(tmp); strcat(tmp, "number-of-commits.txt");
+    FILE* f = fopen(tmp, "r");
+    fscanf(f, "%d", &last_commit);
+    fclose(f);
+    return last_commit;
+}
+
 int config(char* info, char* value, int global) {
     char main_file_path[500], tmp_file_path[500];
     if(!global) {
@@ -565,4 +574,368 @@ void commit(char* message, char* result_path) {
     chdir(cur_path);
 
     clear_stage();
+}
+
+void no_condition_log() {
+
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit = get_last_commit();
+    if(last_commit == 0) {
+        printf("there is no commits yet.\n");
+        return;
+    }
+
+    for(int i = last_commit ; i > 0 ; i--) {
+        char num[15] = ""; sprintf(num, "%d/info.txt", i);
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, num);
+        FILE* commit_info = fopen(commit_info_path, "r");
+        char id[50], message[50], tyme[50], author[50], branch[50], cnt[50];
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_info)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, "message", pos-buffer)) {
+                sprintf(message, "%s", pos+1);
+                if(message[strlen(message)-1] == '\n') message[strlen(message)-1] = 0;
+            }
+            if(!strncmp(buffer, "date-time", pos-buffer)) {
+                sprintf(tyme, "%s", pos+1);
+                if(tyme[strlen(tyme)-1] == '\n') tyme[strlen(tyme)-1] = 0;
+            }
+            if(!strncmp(buffer, "id", pos-buffer)) {
+                sprintf(id, "%s", pos+1);
+                if(id[strlen(id)-1] == '\n') id[strlen(id)-1] = 0;
+                sprintf(branch, "%s", BRANCHES[100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0')]);
+            }
+            if(!strncmp(buffer, "author", pos-buffer)) {
+                sprintf(author, "%s", pos+1);
+                if(author[strlen(author)-1] == '\n') author[strlen(author)-1] = 0;
+            }
+            if(!strncmp(buffer, "files commited", pos-buffer)) {
+                sprintf(cnt, "%s", pos+1);
+                if(cnt[strlen(cnt)-1] == '\n') cnt[strlen(cnt)-1] = 0;
+            }
+        }
+        fclose(commit_info);
+
+        printf("commit with commit id: %s at %s\n", id, tyme);
+        printf("\tauthor: %s\n", author);
+        printf("\tmessage: %s\n", message);
+        printf("\ton branch: %s\n", branch);
+        printf("\t%s files commited.\n", cnt);
+    }
+
+}
+
+void numbered_log(int n) {
+
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit = get_last_commit();
+    if(last_commit == 0) {
+        printf("there is no commits yet.\n");
+        return;
+    }
+
+    for(int i = last_commit ; i > 0 && i > last_commit - n ; i--) {
+        char num[15] = ""; sprintf(num, "%d/info.txt", i);
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, num);
+        FILE* commit_info = fopen(commit_info_path, "r");
+        char id[50], message[50], tyme[50], author[50], branch[50], cnt[50];
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_info)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, "message", pos-buffer)) {
+                sprintf(message, "%s", pos+1);
+                if(message[strlen(message)-1] == '\n') message[strlen(message)-1] = 0;
+            }
+            if(!strncmp(buffer, "date-time", pos-buffer)) {
+                sprintf(tyme, "%s", pos+1);
+                if(tyme[strlen(tyme)-1] == '\n') tyme[strlen(tyme)-1] = 0;
+            }
+            if(!strncmp(buffer, "id", pos-buffer)) {
+                sprintf(id, "%s", pos+1);
+                if(id[strlen(id)-1] == '\n') id[strlen(id)-1] = 0;
+                sprintf(branch, "%s", BRANCHES[100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0')]);
+            }
+            if(!strncmp(buffer, "author", pos-buffer)) {
+                sprintf(author, "%s", pos+1);
+                if(author[strlen(author)-1] == '\n') author[strlen(author)-1] = 0;
+            }
+            if(!strncmp(buffer, "files commited", pos-buffer)) {
+                sprintf(cnt, "%s", pos+1);
+                if(cnt[strlen(cnt)-1] == '\n') cnt[strlen(cnt)-1] = 0;
+            }
+        }
+        fclose(commit_info);
+
+        printf("commit with commit id: %s at %s\n", id, tyme);
+        printf("\tauthor: %s\n", author);
+        printf("\tmessage: %s\n", message);
+        printf("\ton branch: %s\n", branch);
+        printf("\t%s files commited.\n", cnt);
+    }
+}
+
+void branched_log(char* br) {
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit = get_last_commit();
+    if(last_commit == 0) {
+        printf("there is no commits yet.\n");
+        return;
+    }
+
+    for(int i = last_commit ; i > 0 ; i--) {
+        char num[15] = ""; sprintf(num, "%d/info.txt", i);
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, num);
+        FILE* commit_info = fopen(commit_info_path, "r");
+        char id[50], message[50], tyme[50], author[50], branch[50], cnt[50];
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_info)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, "message", pos-buffer)) {
+                sprintf(message, "%s", pos+1);
+                if(message[strlen(message)-1] == '\n') message[strlen(message)-1] = 0;
+            }
+            if(!strncmp(buffer, "date-time", pos-buffer)) {
+                sprintf(tyme, "%s", pos+1);
+                if(tyme[strlen(tyme)-1] == '\n') tyme[strlen(tyme)-1] = 0;
+            }
+            if(!strncmp(buffer, "id", pos-buffer)) {
+                sprintf(id, "%s", pos+1);
+                if(id[strlen(id)-1] == '\n') id[strlen(id)-1] = 0;
+                sprintf(branch, "%s", BRANCHES[100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0')]);
+            }
+            if(!strncmp(buffer, "author", pos-buffer)) {
+                sprintf(author, "%s", pos+1);
+                if(author[strlen(author)-1] == '\n') author[strlen(author)-1] = 0;
+            }
+            if(!strncmp(buffer, "files commited", pos-buffer)) {
+                sprintf(cnt, "%s", pos+1);
+                if(cnt[strlen(cnt)-1] == '\n') cnt[strlen(cnt)-1] = 0;
+            }
+        }
+        fclose(commit_info);
+        if(strcmp(br, branch)) continue;
+
+        printf("commit with commit id: %s at %s\n", id, tyme);
+        printf("\tauthor: %s\n", author);
+        printf("\tmessage: %s\n", message);
+        printf("\ton branch: %s\n", branch);
+        printf("\t%s files commited.\n", cnt);
+    }
+}
+
+void named_log(char* name) {
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit = get_last_commit();
+    if(last_commit == 0) {
+        printf("there is no commits yet.\n");
+        return;
+    }
+
+    for(int i = last_commit ; i > 0 ; i--) {
+        char num[15] = ""; sprintf(num, "%d/info.txt", i);
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, num);
+        FILE* commit_info = fopen(commit_info_path, "r");
+        char id[50], message[50], tyme[50], author[50], branch[50], cnt[50];
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_info)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, "message", pos-buffer)) {
+                sprintf(message, "%s", pos+1);
+                if(message[strlen(message)-1] == '\n') message[strlen(message)-1] = 0;
+            }
+            if(!strncmp(buffer, "date-time", pos-buffer)) {
+                sprintf(tyme, "%s", pos+1);
+                if(tyme[strlen(tyme)-1] == '\n') tyme[strlen(tyme)-1] = 0;
+            }
+            if(!strncmp(buffer, "id", pos-buffer)) {
+                sprintf(id, "%s", pos+1);
+                if(id[strlen(id)-1] == '\n') id[strlen(id)-1] = 0;
+                sprintf(branch, "%s", BRANCHES[100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0')]);
+            }
+            if(!strncmp(buffer, "author", pos-buffer)) {
+                sprintf(author, "%s", pos+1);
+                if(author[strlen(author)-1] == '\n') author[strlen(author)-1] = 0;
+            }
+            if(!strncmp(buffer, "files commited", pos-buffer)) {
+                sprintf(cnt, "%s", pos+1);
+                if(cnt[strlen(cnt)-1] == '\n') cnt[strlen(cnt)-1] = 0;
+            }
+        }
+        fclose(commit_info);
+        char author_name[50];
+        sscanf(author, "%s", author_name);
+        if(strcmp(author_name, name)) continue;
+
+        printf("commit with commit id: %s at %s\n", id, tyme);
+        printf("\tauthor: %s\n", author);
+        printf("\tmessage: %s\n", message);
+        printf("\ton branch: %s\n", branch);
+        printf("\t%s files commited.\n", cnt);
+    }
+
+}
+
+void search_log(char* target) {
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit = get_last_commit();
+    if(last_commit == 0) {
+        printf("there is no commits yet.\n");
+        return;
+    }
+
+    for(int i = last_commit ; i > 0 ; i--) {
+        char num[15] = ""; sprintf(num, "%d/info.txt", i);
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, num);
+        FILE* commit_info = fopen(commit_info_path, "r");
+        char id[50], message[50], tyme[50], author[50], branch[50], cnt[50];
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_info)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, "message", pos-buffer)) {
+                sprintf(message, "%s", pos+1);
+                if(message[strlen(message)-1] == '\n') message[strlen(message)-1] = 0;
+            }
+            if(!strncmp(buffer, "date-time", pos-buffer)) {
+                sprintf(tyme, "%s", pos+1);
+                if(tyme[strlen(tyme)-1] == '\n') tyme[strlen(tyme)-1] = 0;
+            }
+            if(!strncmp(buffer, "id", pos-buffer)) {
+                sprintf(id, "%s", pos+1);
+                if(id[strlen(id)-1] == '\n') id[strlen(id)-1] = 0;
+                sprintf(branch, "%s", BRANCHES[100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0')]);
+            }
+            if(!strncmp(buffer, "author", pos-buffer)) {
+                sprintf(author, "%s", pos+1);
+                if(author[strlen(author)-1] == '\n') author[strlen(author)-1] = 0;
+            }
+            if(!strncmp(buffer, "files commited", pos-buffer)) {
+                sprintf(cnt, "%s", pos+1);
+                if(cnt[strlen(cnt)-1] == '\n') cnt[strlen(cnt)-1] = 0;
+            }
+        }
+        fclose(commit_info);
+
+        if(strstr(message, target) == NULL) continue;
+
+        printf("commit with commit id: %s at %s\n", id, tyme);
+        printf("\tauthor: %s\n", author);
+        printf("\tmessage: %s\n", message);
+        printf("\ton branch: %s\n", branch);
+        printf("\t%s files commited.\n", cnt);
+    }
+}
+
+void since_log(char* date) {
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit = get_last_commit();
+    if(last_commit == 0) {
+        printf("there is no commits yet.\n");
+        return;
+    }
+
+    for(int i = last_commit ; i > 0 ; i--) {
+        char num[15] = ""; sprintf(num, "%d/info.txt", i);
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, num);
+        FILE* commit_info = fopen(commit_info_path, "r");
+        char id[50], message[50], tyme[50], author[50], branch[50], cnt[50];
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_info)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, "message", pos-buffer)) {
+                sprintf(message, "%s", pos+1);
+                if(message[strlen(message)-1] == '\n') message[strlen(message)-1] = 0;
+            }
+            if(!strncmp(buffer, "date-time", pos-buffer)) {
+                sprintf(tyme, "%s", pos+1);
+                if(tyme[strlen(tyme)-1] == '\n') tyme[strlen(tyme)-1] = 0;
+            }
+            if(!strncmp(buffer, "id", pos-buffer)) {
+                sprintf(id, "%s", pos+1);
+                if(id[strlen(id)-1] == '\n') id[strlen(id)-1] = 0;
+                sprintf(branch, "%s", BRANCHES[100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0')]);
+            }
+            if(!strncmp(buffer, "author", pos-buffer)) {
+                sprintf(author, "%s", pos+1);
+                if(author[strlen(author)-1] == '\n') author[strlen(author)-1] = 0;
+            }
+            if(!strncmp(buffer, "files commited", pos-buffer)) {
+                sprintf(cnt, "%s", pos+1);
+                if(cnt[strlen(cnt)-1] == '\n') cnt[strlen(cnt)-1] = 0;
+            }
+        }
+        fclose(commit_info);
+
+        int Y, M, D, y, m, d;
+        sscanf(date, "%d.%d.%d", &Y, &M, &D);
+        char commit_date[30]; sscanf(tyme, "%s", commit_date);
+        sscanf(commit_date, "%d.%d.%d", &y, &m, &d);
+
+        if(y < Y) continue;
+        if(y == Y && m < M) continue;
+        if(y == Y && m == M && d < D) continue;
+
+        printf("commit with commit id: %s at %s\n", id, tyme);
+        printf("\tauthor: %s\n", author);
+        printf("\tmessage: %s\n", message);
+        printf("\ton branch: %s\n", branch);
+        printf("\t%s files commited.\n", cnt);
+    }
+}
+
+void before_log(char* date) {
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit = get_last_commit();
+    if(last_commit == 0) {
+        printf("there is no commits yet.\n");
+        return;
+    }
+
+    for(int i = last_commit ; i > 0 ; i--) {
+        char num[15] = ""; sprintf(num, "%d/info.txt", i);
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, num);
+        FILE* commit_info = fopen(commit_info_path, "r");
+        char id[50], message[50], tyme[50], author[50], branch[50], cnt[50];
+        char buffer[100];
+        while(fgets(buffer, sizeof(buffer), commit_info)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, "message", pos-buffer)) {
+                sprintf(message, "%s", pos+1);
+                if(message[strlen(message)-1] == '\n') message[strlen(message)-1] = 0;
+            }
+            if(!strncmp(buffer, "date-time", pos-buffer)) {
+                sprintf(tyme, "%s", pos+1);
+                if(tyme[strlen(tyme)-1] == '\n') tyme[strlen(tyme)-1] = 0;
+            }
+            if(!strncmp(buffer, "id", pos-buffer)) {
+                sprintf(id, "%s", pos+1);
+                if(id[strlen(id)-1] == '\n') id[strlen(id)-1] = 0;
+                sprintf(branch, "%s", BRANCHES[100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0')]);
+            }
+            if(!strncmp(buffer, "author", pos-buffer)) {
+                sprintf(author, "%s", pos+1);
+                if(author[strlen(author)-1] == '\n') author[strlen(author)-1] = 0;
+            }
+            if(!strncmp(buffer, "files commited", pos-buffer)) {
+                sprintf(cnt, "%s", pos+1);
+                if(cnt[strlen(cnt)-1] == '\n') cnt[strlen(cnt)-1] = 0;
+            }
+        }
+        fclose(commit_info);
+
+        int Y, M, D, y, m, d;
+        sscanf(date, "%d.%d.%d", &Y, &M, &D);
+        char commit_date[30]; sscanf(tyme, "%s", commit_date);
+        sscanf(commit_date, "%d.%d.%d", &y, &m, &d);
+
+        if(y > Y) continue;
+        if(y == Y && m > M) continue;
+        if(y == Y && m == M && d > D) continue;
+
+        printf("commit with commit id: %s at %s\n", id, tyme);
+        printf("\tauthor: %s\n", author);
+        printf("\tmessage: %s\n", message);
+        printf("\ton branch: %s\n", branch);
+        printf("\t%s files commited.\n", cnt);
+    }
 }
