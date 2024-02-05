@@ -258,6 +258,9 @@ int init() {
         // creating "staging" inside .vics:
         chdir(".vics");
         CreateDirectory("staging", NULL);
+        chdir("staging");
+        CreateDirectory("file-paths", NULL);
+        chdir("..");
         chdir("..");
 
         // creating "commits" inside .vics:
@@ -305,6 +308,62 @@ void copy_file(char* path, char* dest) {
         if(ch != EOF) fputc(ch, to);
     } while(ch != EOF);
     fclose(from); fclose(to);
+}
+
+void super_copy(char* file, char* dest) {
+    char cur_path[500]; getcwd(cur_path, sizeof(cur_path));
+    char dest_copy[500]; strcpy(dest_copy, dest);
+    for(int i = strlen(dest_copy)-1 ; i >= 0 ; i--) {
+        if(dest_copy[i] == '\\' || dest_copy[i] == '/') {
+            dest_copy[i] = 0; break;
+        }
+    }
+    char* token = strtok(dest_copy, "/\\");
+    while(token) {
+        if(is_file(token) == 0 || is_file(token) == -1) {
+            if(chdir(token)) {
+                mkdir(token);
+                chdir(token);
+            }
+        }
+        token = strtok(NULL, "/\\");
+    }
+    chdir(cur_path);
+    copy_file(file, dest);
+}
+
+void recursive_copy(char* root) {
+
+    char root_name[100];
+    int i;
+    for(i = strlen(root)-1 ; i >= 0 ; i--) {
+        if(root[i] == '\\' || root[i] == '/') {
+            strcpy(root_name, root+i+1); break;
+        }
+    }
+
+    if(i == -1) strcpy(root_name, root);
+    if(is_file(root) == 1) {
+
+        copy_file(root, root_name);
+        return;
+    }
+    if(is_file(root) == 0) {
+
+        mkdir(root_name);
+        DIR* dir = opendir(root);
+        struct dirent* entry;
+        while(entry = readdir(dir)) {
+            if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+
+            chdir(root_name);
+            char new_root[500]; strcpy(new_root, "../"); strcat(new_root, root); strcat(new_root, "/"); strcat(new_root, entry->d_name);
+            recursive_copy(new_root);
+            chdir("..");
+        }
+        closedir(dir);
+    }
+
 }
 
 void extract_file_name(char* result, char* path) {
@@ -378,6 +437,64 @@ int info_incomplete() {
 
 }
 
+void get_relative_path(char* abs, char* res) {
+    
+    char file_name[100];
+    for(int i = strlen(abs)-1 ; i >= 0 ; i--) {
+        if(abs[i] == '\\' || abs[i] == '/') {
+            strcpy(file_name, abs+i+1);
+            abs[i] = 0;  break;
+        }
+    }
+    strcpy(res, file_name);
+
+    char cur_path[500]; getcwd(cur_path, sizeof(cur_path));
+    chdir(abs);
+
+
+    while(check_initial_dir_existence()) {
+        char last_dir[100];
+        for(int i = strlen(abs)-1 ; i >= 0 ; i--) {
+            if(abs[i] == '\\' || abs[i] == '/') {
+                strcpy(last_dir, abs+i+1);
+                abs[i] = 0; break;
+            }
+        }
+        strcat(last_dir, "/"); strcat(last_dir, res);
+        strcpy(res, last_dir);
+
+        chdir(abs);
+    }
+    char* pos = strstr(res, "/");
+    strcpy(res, pos+1);
+
+    chdir(cur_path);
+}
+
+void clear_stage() {
+
+    char staging_folder[500] = ""; get_staging_folder(staging_folder);
+    char file_paths_folder[500]; strcpy(file_paths_folder, staging_folder); strcat(file_paths_folder, "file-paths/");
+    DIR* staging_area = opendir(staging_folder);
+    struct dirent* entry;
+    while(entry = readdir(staging_area)) {
+        char entry_path[500]; strcpy(entry_path, staging_folder); strcat(entry_path, entry->d_name);
+        if(is_file(entry_path) == 1) {
+            remove(entry_path);
+        }
+    }
+    closedir(staging_area);
+
+    DIR* file_paths = opendir(file_paths_folder);
+    while(entry = readdir(file_paths)) {
+        char entry_path[500]; strcpy(entry_path, file_paths_folder); strcat(entry_path, entry->d_name);
+        if(is_file(entry_path) == 1) {
+            remove(entry_path);
+        }
+    }
+    closedir(file_paths);
+}
+
 void commit(char* message, char* result_path) {
     int last_commit;
     char tmp[500] = ""; get_commits_folder(tmp); strcat(tmp, "number-of-commits.txt");
@@ -395,7 +512,6 @@ void commit(char* message, char* result_path) {
     char lstcmt[10]; sprintf(lstcmt, "%d", last_commit);
     mkdir(lstcmt);
     strcat(commit_path, lstcmt); chdir(lstcmt);
-    mkdir("contents");
     
     FILE* cmt = fopen("info.txt", "w");
 
@@ -409,10 +525,37 @@ void commit(char* message, char* result_path) {
     get_name(name); get_email(email);
     fprintf(cmt, "author:%s - %s\n", name, email);
 
-    // TODO: commiting :)
+    char prev_cmt_contents[500] = ""; get_commits_folder(prev_cmt_contents);
+    char prev_cmt[10] = ""; sprintf(prev_cmt, "%d", last_commit-1); 
+    strcat(prev_cmt_contents, prev_cmt); strcat(prev_cmt_contents, "/contents");
 
+    recursive_copy(prev_cmt_contents);
+    char staging_folder[500] = ""; get_staging_folder(staging_folder);
+    char file_paths[500]; strcpy(file_paths, staging_folder); strcat(file_paths, "file-paths/");
+    DIR* staging_area = opendir(staging_folder);
+    struct dirent* entry;
+    int number_of_files_commited = 0;
+    while(entry = readdir(staging_area)) {
+        char cur_file[500]; strcpy(cur_file, staging_folder); strcat(cur_file, entry->d_name);
+        if(is_file(cur_file) == 1) {
 
+            char absolute_file_path[500];
+            char cur_file_path[500]; strcpy(cur_file_path, file_paths); strcat(cur_file_path, "/"); strcat(cur_file_path, entry->d_name);
+            FILE* f = fopen(cur_file_path, "r");
+            fscanf(f, "%s", absolute_file_path);
+            fclose(f);
 
+            char relative_file_path[500] = "", tmp[500] = ""; 
+            get_relative_path(absolute_file_path, tmp);
+            strcat(relative_file_path, "contents/");
+            strcat(relative_file_path, tmp);
+            super_copy(cur_file, relative_file_path);
+            number_of_files_commited++;
+        }
+    }
+    closedir(staging_area);
+
+    fprintf(cmt, "files commited:%d\n", number_of_files_commited);
     fclose(cmt);
 
     char ttt[500]; getcwd(ttt, sizeof(ttt));
@@ -420,4 +563,6 @@ void commit(char* message, char* result_path) {
     strcat(result_path, "/info.txt");
 
     chdir(cur_path);
+
+    clear_stage();
 }
