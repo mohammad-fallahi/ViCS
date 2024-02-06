@@ -304,7 +304,8 @@ int main(int argc, char *argv[]) {
         if(argc == 2) {
             printf("all branches:\n");
             for(int i = 0 ; i < branch_count ; i++) {
-                printf("%s\n", BRANCHES[i]);
+                if(i == cur_branch) printf("*%s\n", BRANCHES[i]);
+                else printf(" %s\n", BRANCHES[i]);
             }
         } else {
             int exists = 0;

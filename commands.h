@@ -312,6 +312,8 @@ void load_initials() {
     char buffer[50];
     while(fgets(buffer, sizeof(buffer), branch_list)) {
         if(buffer[strlen(buffer)-1] == '\n') buffer[strlen(buffer)-1] = 0;
+        char* pos = strstr(buffer, ":");
+        buffer[pos-buffer] = 0;
         strcpy(BRANCHES[branch_count], buffer);
         branch_count++;
     }
@@ -580,7 +582,7 @@ void commit(char* message, char* result_path) {
     fprintf(cmt, "author:%s - %s\n", name, email);
 
     char prev_cmt_contents[500] = ""; get_commits_folder(prev_cmt_contents);
-    char prev_cmt[10] = ""; sprintf(prev_cmt, "%d", last_commit-1); 
+    char prev_cmt[10] = ""; sprintf(prev_cmt, "%d", cur_commit); 
     strcat(prev_cmt_contents, prev_cmt); strcat(prev_cmt_contents, "/contents");
 
     recursive_copy(prev_cmt_contents);
@@ -999,7 +1001,7 @@ void add_branch(char* name) {
     char branches[500] = ""; get_vics_folder(branches); strcat(branches, "/");
     strcat(branches, "branches.txt");
     FILE* branch_list = fopen(branches, "a");
-    fprintf(branch_list, "%s\n", name);
+    fprintf(branch_list, "%s:%d\n", name, cur_commit);
     fclose(branch_list);
     strcpy(BRANCHES[branch_count++], name);
 
@@ -1182,6 +1184,7 @@ int checkout_branch(char* branch_name) {
 
         char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, entry->d_name); strcat(commit_info_path, "/info.txt");
         FILE* info = fopen(commit_info_path, "r");
+        if(info == NULL) continue;
         char commit_id[10], buffer[100];
         while(fgets(buffer, sizeof(buffer), info)) {
             int pos = strstr(buffer, ":") - buffer;
@@ -1189,10 +1192,11 @@ int checkout_branch(char* branch_name) {
                 strcpy(commit_id, buffer + pos + 1); break;
             }
         }
+        fclose(info);
 
-        int commit_branch = 100*(commit_id[0]) + 10*(commit_id[1]) + (commit_id[2]);
+        int commit_branch = 100*(commit_id[0]-'0') + 10*(commit_id[1]-'0') + (commit_id[2]-'0');
         if(!strcmp(BRANCHES[commit_branch], branch_name)) {
-            int num; sscanf(entry->d_name, "%d", num);
+            int num; sscanf(entry->d_name, "%d", &num);
             if(num > head) head = num;
         }
     }
@@ -1204,6 +1208,32 @@ int checkout_branch(char* branch_name) {
             branch_idx = i; break;
         }
     }
+
+    if(head == -1) {
+        char branch_list[500] = ""; get_vics_folder(branch_list);
+        strcat(branch_list, "/branches.txt");
+        FILE* branches = fopen(branch_list, "r");
+        char buffer[70];
+        int par_cmt = 0;
+        while(fgets(buffer, sizeof(buffer), branches)) {
+            char* pos = strstr(buffer, ":");
+            if(!strncmp(buffer, branch_name, pos-buffer)) {
+                sscanf(pos+1, "%d", &par_cmt); 
+                break;
+            }
+        }
+        fclose(branches);
+        cur_commit = par_cmt;
+        cur_branch = branch_idx;
+        char curs[500] = ""; get_vics_folder(curs);
+        strcat(curs, "/currents.txt");
+        FILE* currents = fopen(curs, "w");
+        fprintf(currents, "commit:%d\n", cur_commit);
+        fprintf(currents, "branch:%d\n", cur_branch);
+        fclose(currents);
+        return 0;
+    }
+
     char res[10];
     sprintf(res, "%03d%03d", branch_idx, head);
     return checkout_commit(res);
