@@ -1,7 +1,6 @@
 // Mohammad Fallahinezhad
 // 402106304
 #include "commands.h"
-// #include "constants.h"
 
 int validate_command(char* command) {
     char copy[500] = "";
@@ -28,6 +27,7 @@ int main(int argc, char *argv[]) {
 
     if(argc == 1) {
         printf("Thanks for choosing ViCS!\n");
+        return 0;
     }
 
     if(!strcmp(argv[1], "init")) {
@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
         if(error) printf("you are inside a vics project and can not initialize another project.\n");
         else printf("welcome to ViCS!\n");
 
+        return 0;
     }
 
     if(!check_initial_dir_existence()) {
@@ -88,6 +89,7 @@ int main(int argc, char *argv[]) {
         } else {
             printf("data updated successfully.\n");
         }
+        return 0;
     }
 
 
@@ -148,9 +150,8 @@ int main(int argc, char *argv[]) {
 
         ADD_END:
         if(error) printf("an error occured.\n");
-
+        return 0;
     }
-    // TODO: compare with the last commit to check if a file is changed
 
     if(!strcmp(argv[1], "reset")) {
         int error = 0;
@@ -186,8 +187,8 @@ int main(int argc, char *argv[]) {
 
         RESET_END:
         if(error) printf("an error occured.\n");
+        return 0;
     }
-    // TODO: reset -undo
 
     if(!strcmp(argv[1], "commit")) {
         int error = 0;
@@ -240,6 +241,7 @@ int main(int argc, char *argv[]) {
 
         COMMIT_END:
         if(error) printf("an error occured.\n");
+        return 0;
     }
 
     if(!strcmp(argv[1], "log")) {
@@ -299,6 +301,7 @@ int main(int argc, char *argv[]) {
 
         LOG_END:
         if(error) printf("an error occured.\n");
+        return 0;
     }
 
     if(!strcmp(argv[1], "branch")) {
@@ -326,6 +329,7 @@ int main(int argc, char *argv[]) {
 
         BRANCH_END:
         if(error) printf("an error occured.\n");
+        return 0;
     }
 
     if(!strcmp(argv[1], "checkout")) {
@@ -368,12 +372,17 @@ int main(int argc, char *argv[]) {
 
         CHECKOUT_END:
         if(error) printf("an error occured.\n");
+        return 0;
     }
 
     if(!strcmp(argv[1], "status")) {
         show_status();
+        return 0;
     }
 
+    if(!run_alias(argv[1])) {
+        printf("there is no command '%s'.\n", argv[1]);
+    }
 
     return 0;
 }

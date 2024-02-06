@@ -7,7 +7,6 @@
 #include<sys/stat.h>
 #include<unistd.h>
 #include<time.h>
-#include<stdarg.h>
 #include "constants.h"
 
 int is_file(char *path) {
@@ -1318,3 +1317,47 @@ void show_status() {
 
     chdir(cur_path);
 }
+
+int run_alias(char* command) {
+    char alias_path[500] = ""; get_vics_folder(alias_path); strcat(alias_path, "/aliases.txt");
+    FILE* aliases = fopen(alias_path, "r");
+    if(aliases == NULL) aliases = fopen("D:/uni/fop/project/ViCS/global/aliases.txt", "r");
+    if(aliases == NULL) {
+        return 0;
+    }
+
+    char tmp[100]; strcpy(tmp, "alias.");
+    strcat(tmp, command);
+
+    char buffer[100];
+    int success = 0;
+    while(fgets(buffer, sizeof(buffer), aliases)) {
+        int pos = strstr(buffer, ":") - buffer;
+        if(!strncmp(buffer, tmp, pos)) {
+            char alias_value[100];
+            strcpy(alias_value, buffer+pos+1);
+            system(alias_value);
+            success = 1;
+            break;
+        }
+    }
+    fclose(aliases);
+    if(success) return 1;
+
+    aliases = fopen("D:/uni/fop/project/ViCS/global/aliases.txt", "r");
+    if(aliases == NULL) return 0;
+    while(fgets(buffer, sizeof(buffer), aliases)) {
+        int pos = strstr(buffer, ":") - buffer;
+        if(!strncmp(buffer, tmp, pos)) {
+            char alias_value[100];
+            strcpy(alias_value, buffer+pos+1);
+            system(alias_value);
+            success = 1;
+            break;
+        }
+    }
+    fclose(aliases);
+    
+    return success;
+}
+
