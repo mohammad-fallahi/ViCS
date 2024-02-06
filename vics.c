@@ -224,7 +224,8 @@ int main(int argc, char *argv[]) {
         }
 
         char commit_file_path[500] = "";
-        commit(argv[3], commit_file_path);
+        error = commit(argv[3], commit_file_path);
+        if(error) goto COMMIT_END;
         printf("commited successfully.\n");
 
         FILE* commit_file = fopen(commit_file_path, "r");

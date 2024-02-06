@@ -487,6 +487,39 @@ int info_incomplete() {
 
 }
 
+int find_head(int branch_code) {
+
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    DIR* commits = opendir(commits_folder);
+    struct dirent* entry;
+    int res = -1;
+    while(entry = readdir(commits)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        char commit_path[500]; sprintf(commit_path, "%s%s", commits_folder, entry->d_name);
+        if(is_file(commit_path) == 0) {
+            strcat(commit_path, "/info.txt");
+            FILE* info = fopen(commit_path, "r");
+            char buffer[100];
+            while(fgets(buffer, sizeof(buffer), info)) {
+                char* pos = strstr(buffer, ":");
+                if(!strncmp(buffer, "id", pos-buffer)) {
+                    char id[20]; sscanf(pos+1, "%s", id);
+                    int br = 100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0');
+                    if(br == branch_code) {
+                        int number; sscanf(entry->d_name, "%d", &number);
+                        if(number > res) res = number;
+                    }
+                    break;
+                }
+            }
+            fclose(info);
+        }
+    }
+    closedir(commits);
+
+    return res;
+}
+
 void get_relative_path(char* abs, char* res) {
     
     char file_name[100];
@@ -545,7 +578,15 @@ void clear_stage() {
     closedir(file_paths);
 }
 
-void commit(char* message, char* result_path) {
+int commit(char* message, char* result_path) {
+
+    int head = find_head(cur_branch);
+    if(head != cur_commit) {
+        printf("commit failed: this is not the head of this branch. commits are only allowed in heads.\n");
+        clear_stage();
+        return 1;
+    }
+
     int last_commit;
     char tmp[500] = ""; get_commits_folder(tmp); strcat(tmp, "number-of-commits.txt");
     FILE* f = fopen(tmp, "r");
@@ -621,9 +662,8 @@ void commit(char* message, char* result_path) {
     chdir(cur_path);
 
     clear_stage();
+    return 0;
 }
-// TODO: change par commit from last commit to head?? khodamam nemidoonam
-// TODO: dont commit when you are not the head
 
 void no_condition_log() {
 
@@ -1055,39 +1095,6 @@ void recursive_clear(char* path) {
     rmdir(path);
 }
 
-int find_head(int branch_code) {
-
-    char commits_folder[500] = ""; get_commits_folder(commits_folder);
-    DIR* commits = opendir(commits_folder);
-    struct dirent* entry;
-    int res = -1;
-    while(entry = readdir(commits)) {
-        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
-        char commit_path[500]; sprintf(commit_path, "%s%s", commits_folder, entry->d_name);
-        if(is_file(commit_path) == 0) {
-            strcat(commit_path, "/info.txt");
-            FILE* info = fopen(commit_path, "r");
-            char buffer[100];
-            while(fgets(buffer, sizeof(buffer), info)) {
-                char* pos = strstr(buffer, ":");
-                if(!strncmp(buffer, "id", pos-buffer)) {
-                    char id[20]; sscanf(pos+1, "%s", id);
-                    int br = 100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0');
-                    if(br == branch_code) {
-                        int number; sscanf(entry->d_name, "%d", &number);
-                        if(number > res) res = number;
-                    }
-                    break;
-                }
-            }
-            fclose(info);
-        }
-    }
-    closedir(commits);
-
-    return res;
-}
-
 int checkout_commit(char* commit_id) {
     if(!strcmp(commit_id, "HEAD")) {
 
@@ -1125,7 +1132,7 @@ int checkout_commit(char* commit_id) {
         }
     }
 
-    if(!no_change) {
+    if(!no_change && find_head(cur_branch) == cur_commit) {
         printf("checkout is not allowed: there exists changes that are not commited yet.\n");
         return 1;
     }
@@ -1238,4 +1245,3 @@ int checkout_branch(char* branch_name) {
     sprintf(res, "%03d%03d", branch_idx, head);
     return checkout_commit(res);
 }
-
