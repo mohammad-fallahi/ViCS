@@ -7,6 +7,7 @@
 #include<sys/stat.h>
 #include<unistd.h>
 #include<time.h>
+#include<stdarg.h>
 #include "constants.h"
 
 int is_file(char *path) {
@@ -869,7 +870,8 @@ void named_log(char* name) {
 
 }
 
-void search_log(char* target) {
+void search_log(int n, char words_list[10][20]) {
+
     char commits_folder[500] = ""; get_commits_folder(commits_folder);
     int last_commit = get_last_commit();
     if(last_commit == 0) {
@@ -909,7 +911,13 @@ void search_log(char* target) {
         }
         fclose(commit_info);
 
-        if(strstr(message, target) == NULL) continue;
+        int flag = 0;
+        for(int i = 0 ; i < n ; i++) {
+            if(strstr(message, words_list[i]) != NULL) {
+                flag = 1; break;
+            }
+        }
+        if(!flag) continue;
 
         printf("commit with commit id: %s at %s\n", id, tyme);
         printf("\tauthor: %s\n", author);

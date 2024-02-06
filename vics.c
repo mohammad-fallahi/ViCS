@@ -277,7 +277,9 @@ int main(int argc, char *argv[]) {
                 named_log(argv[3]);
             }
             if(!strcmp(argv[2], "-search")) {
-                search_log(argv[3]);
+                char words[10][20];
+                for(int i = 3 ; i < argc ; i++) strcpy(words[i-3], argv[i]);
+                search_log(argc-3, words);
             }
             if(!strcmp(argv[2], "-since")) {
                 if(!check_date_format(argv[3])) {
