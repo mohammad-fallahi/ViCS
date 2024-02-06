@@ -621,6 +621,7 @@ void commit(char* message, char* result_path) {
     clear_stage();
 }
 // TODO: change par commit from last commit to head?? khodamam nemidoonam
+// TODO: dont commit when you are not the head
 
 void no_condition_log() {
 
@@ -1005,63 +1006,206 @@ void add_branch(char* name) {
     printf("new branch created successfully.\n");
 }
 
-// void checkout_commit(char* commit_id) {
-//     int commit_branch = 100*(commit_id[0]) + 10*(commit_id[1]) + (commit_id[2]);
-//     int commit_number = 100*(commit_id[3]) + 10*(commit_id[4]) + (commit_id[5]);
-//     char cur_path[500]; getcwd(cur_path, sizeof(cur_path));
+int recursive_compare(char* lhs, char* rhs) {
+    if(is_file(lhs) == 1) {
+        return check_equality(lhs, rhs);
+    }
+    strcat(lhs, "/");
+    strcat(rhs, "/");
 
-//     char tmp[500] = ""; get_vics_folder(tmp);
-//     while(tmp[0] == '.' && tmp[1] == '.') {
-//         chdir("..");
-//         strcpy(tmp, ""); get_vics_folder(tmp);
-//     }
+    DIR* dir = opendir(lhs);
+    struct dirent* entry;
+    while(entry = readdir(dir)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        strcat(lhs, entry->d_name);
+        strcat(rhs, entry->d_name);
+        if(!recursive_compare(lhs, rhs)) return 0;
+        for(int i = strlen(lhs)-1 ; i >= 0 ; i--) if(lhs[i] == '/' || lhs[i] == '\\') {
+            lhs[i+1] = 0; break;
+        }
+        for(int i = strlen(rhs)-1 ; i >= 0 ; i--) if(rhs[i] == '/' || rhs[i] == '\\') {
+            rhs[i+1] = 0; break;
+        }
+    }
+    closedir(dir);
+    lhs[strlen(lhs)-1] = 0;
+    rhs[strlen(rhs)-1] = 0;
+    return 1;
+}
+
+void recursive_clear(char* path) {
+    if(is_file(path) == 1) {
+        remove(path); return;
+    }
+    strcat(path, "/");
+    DIR* dir = opendir(path);
+    struct dirent* entry;
+    while(entry = readdir(dir)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        strcat(path, entry->d_name);
+        recursive_clear(path);
+        for(int i = strlen(path)-1 ; i >= 0 ; i--) if(path[i] == '/' || path[i] == '\\') {
+            path[i+1] = 0; break;
+        }
+    }
+    closedir(dir);
+    path[strlen(path)-1] = 0;
+    rmdir(path);
+}
+
+int find_head(int branch_code) {
+
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    DIR* commits = opendir(commits_folder);
+    struct dirent* entry;
+    int res = -1;
+    while(entry = readdir(commits)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        char commit_path[500]; sprintf(commit_path, "%s%s", commits_folder, entry->d_name);
+        if(is_file(commit_path) == 0) {
+            strcat(commit_path, "/info.txt");
+            FILE* info = fopen(commit_path, "r");
+            char buffer[100];
+            while(fgets(buffer, sizeof(buffer), info)) {
+                char* pos = strstr(buffer, ":");
+                if(!strncmp(buffer, "id", pos-buffer)) {
+                    char id[20]; sscanf(pos+1, "%s", id);
+                    int br = 100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0');
+                    if(br == branch_code) {
+                        int number; sscanf(entry->d_name, "%d", &number);
+                        if(number > res) res = number;
+                    }
+                    break;
+                }
+            }
+            fclose(info);
+        }
+    }
+    closedir(commits);
+
+    return res;
+}
+
+int checkout_commit(char* commit_id) {
+    if(!strcmp(commit_id, "HEAD")) {
+
+        int head = find_head(cur_branch);
+        char res[20]; sprintf(res, "%03d%03d", cur_branch, head);
+        return checkout_commit(res);
+    }
 
 
+    int commit_branch = 100*(commit_id[0]-'0') + 10*(commit_id[1]-'0') + (commit_id[2]-'0');
+    int commit_number = 100*(commit_id[3]-'0') + 10*(commit_id[4]-'0') + (commit_id[5]-'0');
+    char cur_path[500]; getcwd(cur_path, sizeof(cur_path));
 
-//     DIR* root = opendir(".");
+    char tmp[500] = ""; get_vics_folder(tmp);
+    while(tmp[0] == '.' && tmp[1] == '.') {
+        chdir("..");
+        strcpy(tmp, ""); get_vics_folder(tmp);
+    }
 
-//     closedir(root);
+    DIR* root = opendir(".");
+    char rhs[500]; sprintf(rhs, ".vics/commits/%d/contents/", cur_commit);
+    char lhs[500] = "";
+    struct dirent* entry;
+    int no_change = 1;
+    while(entry = readdir(root)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..") || !strcmp(entry->d_name, ".vics")) continue;
 
-//     chdir(cur_path);
-// }
+        sprintf(lhs, "%s", entry->d_name);
+        strcat(rhs, entry->d_name);
+        if(!recursive_compare(lhs, rhs)) {
+            no_change = 0; break;
+        }
+        for(int i = strlen(rhs)-1 ; i >= 0 ; i--) if(rhs[i] == '/' || rhs[i] == '\\') {
+            rhs[i+1] = 0; break;
+        }
+    }
 
-// void checkout_branch(char* branch_name) {
+    if(!no_change) {
+        printf("checkout is not allowed: there exists changes that are not commited yet.\n");
+        return 1;
+    }
+    closedir(root);
 
-//     char commits_folder[500] = ""; get_commits_folder(commits_folder);
-//     DIR* commits = opendir(commits_folder);
+    root = opendir(".");
+    char file_path[500] = "";
+    while(entry = readdir(root)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..") || !strcmp(entry->d_name, ".vics")) continue;
+        
+        strcat(file_path, entry->d_name);
+        if(is_file(file_path) == 1) {
+            remove(file_path);
+        } else if(is_file(file_path) == 0) {
+            recursive_clear(file_path);
+        }
+        strcpy(file_path, "");
 
-//     struct dirent* entry;
-//     int head = -1;
-//     while(entry = readdir(commits)) {
-//         if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
-//         if(is_file(entry->d_name) == 1) continue;
+    }
+    closedir(root);
 
-//         char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, entry->d_name); strcat(commit_info_path, "/info.txt");
-//         FILE* info = fopen(commit_info_path, "r");
-//         char commit_id[10], buffer[100];
-//         while(fgets(buffer, sizeof(buffer), info)) {
-//             int pos = strstr(buffer, ":") - buffer;
-//             if(!strncmp(buffer, "id", pos)) {
-//                 strcpy(commit_id, buffer + pos + 1); break;
-//             }
-//         }
+    char to_be_copied[500]; sprintf(to_be_copied, ".vics/commits/%d/contents/", commit_number);
+    DIR* src = opendir(to_be_copied);
+    while(entry = readdir(src)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
 
-//         int commit_branch = 100*(commit_id[0]) + 10*(commit_id[1]) + (commit_id[2]);
-//         if(!strcmp(BRANCHES[commit_branch], branch_name)) {
-//             int num; sscanf(entry->d_name, "%d", num);
-//             if(num > head) head = num;
-//         }
-//     }
-//     closedir(commits);
+        strcat(to_be_copied, entry->d_name);
+        recursive_copy(to_be_copied);
+        for(int i = strlen(to_be_copied)-1 ; i >= 0 ; i--) if(to_be_copied[i] == '/' || to_be_copied[i] == '\\') {
+            to_be_copied[i+1] = 0; break;
+        }
+    }
+    closedir(src);
 
-//     int branch_idx;
-//     for(int i = 0 ; i < branch_count ; i++) {
-//         if(!strcmp(BRANCHES[i], branch_name)) {
-//             branch_idx = i; break;
-//         }
-//     }
-//     char res[10];
-//     sprintf(res, "%03d%03d", branch_idx, head);
-//     checkout_commit(res);
-// }
+    cur_branch = commit_branch;
+    cur_commit = commit_number;
+    FILE* curs = fopen(".vics/currents.txt", "w");
+    fprintf(curs, "commit:%d\n", cur_commit);
+    fprintf(curs, "branch:%d\n", cur_branch);
+    fclose(curs);
+
+    chdir(cur_path);
+    return 0;
+}
+
+int checkout_branch(char* branch_name) {
+
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    DIR* commits = opendir(commits_folder);
+
+    struct dirent* entry;
+    int head = -1;
+    while(entry = readdir(commits)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        if(is_file(entry->d_name) == 1) continue;
+
+        char commit_info_path[500]; strcpy(commit_info_path, commits_folder); strcat(commit_info_path, entry->d_name); strcat(commit_info_path, "/info.txt");
+        FILE* info = fopen(commit_info_path, "r");
+        char commit_id[10], buffer[100];
+        while(fgets(buffer, sizeof(buffer), info)) {
+            int pos = strstr(buffer, ":") - buffer;
+            if(!strncmp(buffer, "id", pos)) {
+                strcpy(commit_id, buffer + pos + 1); break;
+            }
+        }
+
+        int commit_branch = 100*(commit_id[0]) + 10*(commit_id[1]) + (commit_id[2]);
+        if(!strcmp(BRANCHES[commit_branch], branch_name)) {
+            int num; sscanf(entry->d_name, "%d", num);
+            if(num > head) head = num;
+        }
+    }
+    closedir(commits);
+
+    int branch_idx;
+    for(int i = 0 ; i < branch_count ; i++) {
+        if(!strcmp(BRANCHES[i], branch_name)) {
+            branch_idx = i; break;
+        }
+    }
+    char res[10];
+    sprintf(res, "%03d%03d", branch_idx, head);
+    return checkout_commit(res);
+}
 
