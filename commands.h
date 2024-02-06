@@ -78,6 +78,10 @@ void get_commits_folder(char* buffer) {
     strcat(buffer, "/commits/");
 }
 
+void get_tags_folder(char* buffer) {
+    get_vics_folder(buffer); strcat(buffer, "/tags/");
+}
+
 void get_name(char* res) {
     char info_path[500] = ""; get_vics_folder(info_path);
     strcat(info_path, "/user-info.txt");
@@ -286,10 +290,15 @@ int init() {
         chdir("..");
         chdir("..");
 
+        // creating "tags" inside .vics:
+        chdir(".vics");
+        CreateDirectory("tags", NULL);
+        chdir("..");
+
         // creating branches file:
         chdir(".vics");
         FILE* br = fopen("branches.txt", "w");
-        fprintf(br, "master\n");
+        fprintf(br, "master:0\n");
         fclose(br);
         chdir("..");
 
@@ -1361,3 +1370,65 @@ int run_alias(char* command) {
     return success;
 }
 
+int create_tag(char* tag_name, char* tag_message, char* commit_id, int overwrite) {
+    char tags_folder[500] = ""; get_tags_folder(tags_folder);
+
+    char tag_path[500]; sprintf(tag_path, "%s%s.txt", tags_folder, tag_name);
+    if(is_file(tag_path) == 1 && !overwrite) {
+        printf("a tag with this name already exists.\n");
+        return 1;
+    }
+
+    char author_name[50] = ""; get_name(author_name);
+    char author_email[50] = ""; get_email(author_email);
+    if(!strlen(author_email) || !strlen(author_name)) {
+        printf("please set your user name and email with 'vics config' and try again.\n");
+        return 1;
+    }
+
+
+    FILE* tag = fopen(tag_path, "w");
+
+    fprintf(tag, "name: %s\n", tag_name);
+    fprintf(tag, "commit-id: %s\n", commit_id);
+    fprintf(tag, "author: %s - %s\n", author_name, author_email);
+    time_t t = time(NULL);
+    struct tm tyme = *localtime(&t);
+    fprintf(tag, "date-time: %d.%02d.%02d - %02d:%02d:%02d\n", tyme.tm_year + 1900, tyme.tm_mon+1, tyme.tm_mday, tyme.tm_hour, tyme.tm_min, tyme.tm_sec);
+    fprintf(tag, "message: %s\n", tag_message);
+
+    fclose(tag);
+}
+
+void list_tags() {
+    printf("all tags:\n");
+    char tags_folder[500] = ""; get_tags_folder(tags_folder);
+    DIR* all_tags = opendir(tags_folder);
+    struct dirent* entry;
+    while(entry = readdir(all_tags)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        char no_extension[50]; strcpy(no_extension, entry->d_name);
+        for(int i = strlen(no_extension)-1 ; i >= 0 ; i--) if(no_extension[i] == '.') no_extension[i] = 0;
+        printf("%s\n", no_extension);
+    }
+    closedir(all_tags);
+}
+
+int show_tag(char* tag_name) {
+    char tag_path[500] = ""; get_tags_folder(tag_path);
+    strcat(tag_path, tag_name); strcat(tag_path, ".txt");
+
+    FILE* tag = fopen(tag_path, "r");
+    if(tag == NULL) {
+        printf("no such tag.\n");
+        return 1;
+    }
+
+    char buffer[100];
+    while(fgets(buffer, sizeof(buffer), tag)) {
+        printf("%s", buffer);
+    }
+
+    fclose(tag);
+    return 0;
+}

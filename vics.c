@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
         printf("Thanks for choosing ViCS!\n");
         return 0;
     }
+    
 
     if(!strcmp(argv[1], "init")) {
 
@@ -38,6 +39,7 @@ int main(int argc, char *argv[]) {
 
         return 0;
     }
+
 
     if(!check_initial_dir_existence()) {
         printf("no ViCS project is initialized in this folder or its parent.\n");
@@ -377,6 +379,47 @@ int main(int argc, char *argv[]) {
 
     if(!strcmp(argv[1], "status")) {
         show_status();
+        return 0;
+    }
+
+    if(!strcmp(argv[1], "tag")) {
+        int error = 0;
+
+        if(argc == 2) {
+            list_tags();
+            goto TAG_END;
+        }
+        if(argc == 4 && !strcmp(argv[2], "show")) {
+            error = show_tag(argv[3]);
+            goto TAG_END;
+        }
+
+
+        if(argc < 4 || strcmp(argv[2], "-a")) {
+            printf("invalid usage of command.\n");
+            error = 1;
+            goto TAG_END;
+        }
+        char tag_message[100] = "";
+        char commit_id[20]; sprintf(commit_id, "%03d%03d", cur_branch, cur_commit);
+        int overwrite = 0;
+        if(argc >= 6 && !strcmp(argv[4], "-m")) {
+            strcpy(tag_message, argv[5]);
+        }
+        if(argc >= 6 && !strcmp(argv[4], "-c")) {
+            strcpy(commit_id, argv[5]);
+        }
+        if(argc >= 8 && !strcmp(argv[6], "-c")) {
+            strcpy(commit_id, argv[7]);
+        }
+        overwrite = !strcmp(argv[argc-1], "-f");
+
+        error = create_tag(argv[3], tag_message, commit_id, overwrite);
+        if(!error) printf("tag created successfully.\n");
+
+
+        TAG_END:
+        if(error) printf("an error occured.\n");
         return 0;
     }
 
