@@ -368,6 +368,10 @@ int main(int argc, char *argv[]) {
         if(error) printf("an error occured.\n");
     }
 
+    if(!strcmp(argv[1], "status")) {
+        show_status();
+    }
+
 
     return 0;
 }

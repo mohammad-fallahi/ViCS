@@ -1245,3 +1245,68 @@ int checkout_branch(char* branch_name) {
     sprintf(res, "%03d%03d", branch_idx, head);
     return checkout_commit(res);
 }
+
+void show_file_status(char* file) {
+    char file_name[100] = ""; extract_file_name(file_name, file);
+
+    char file_in_commit[500] = ""; sprintf(file_in_commit, ".vics/commits/%d/contents/%s", cur_commit, file);
+    if(check_equality(file, file_in_commit)) return;
+
+    printf("%s: ", file);
+
+    if(is_file(file_in_commit) == -1) printf("A");
+    else printf("M");
+
+    char file_in_stage[500]; sprintf(file_in_stage, ".vics/staging/%s", file_name);
+    if(check_equality(file, file_in_stage)) printf("+\n");
+    else printf("-\n");
+}
+
+void recursively_show_status(char* path) {
+    if(is_file(path) == 1) {
+        show_file_status(path);
+        return;
+    }
+
+    strcat(path, "/");
+    DIR* dir = opendir(path);
+
+    struct dirent* entry;
+    while(entry = readdir(dir)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        strcat(path, entry->d_name);
+        recursively_show_status(path);
+        for(int i = strlen(path)-1 ; i >= 0 ; i--) if(path[i] == '/' || path[i] == '\\') {
+            path[i+1] = 0; break;
+        }
+    }
+
+    closedir(dir);
+
+    path[strlen(path)-1] = 0;
+}
+
+void show_status() {
+    char cur_path[500]; getcwd(cur_path, sizeof(cur_path));
+    char tmp[500] = ""; get_vics_folder(tmp);
+    while(tmp[0] == '.' && tmp[1] == '.') {
+        chdir("..");
+        strcpy(tmp, ""); get_vics_folder(tmp);
+    }
+
+    char file_path[500] = "";
+    DIR* root = opendir(".");
+
+    struct dirent* entry;
+    while(entry = readdir(root)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..") || !strcmp(entry->d_name, ".vics")) continue;
+
+        strcat(file_path, entry->d_name);
+        recursively_show_status(file_path);
+        strcpy(file_path, "");
+    }
+
+    closedir(root);
+
+    chdir(cur_path);
+}
