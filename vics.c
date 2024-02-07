@@ -462,6 +462,29 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    if(!strcmp(argv[1], "pre-commit")) {
+
+        if(argc > 2) {
+            if(!strcmp(argv[2], "hooks")) {
+                list_all_hooks();
+            }
+            if(!strcmp(argv[2], "applied")) {
+                list_applied_hooks();
+            }
+            if(!strcmp(argv[2], "add")) {
+                add_hook(argv[4]);
+            }
+            if(!strcmp(argv[2], "remove")) {
+                remove_hook(argv[4]);
+            }
+
+
+            
+        }
+
+        return 0;
+    }
+
     if(!run_alias(argv[1])) {
         printf("there is no command '%s'.\n", argv[1]);
     }

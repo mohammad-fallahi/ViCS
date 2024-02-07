@@ -310,6 +310,20 @@ int init() {
         fclose(curs);
         chdir("..");
 
+        // creating hooks file:
+        chdir(".vics");
+        FILE* hooks = fopen("hooks.txt", "w");
+        fprintf(hooks, "todo-check:0\n");
+        fprintf(hooks, "eof-blank-space:0\n");
+        fprintf(hooks, "format-check:0\n");
+        fprintf(hooks, "balance-braces:0\n");
+        fprintf(hooks, "indentation-check:0\n");
+        fprintf(hooks, "static-error-check:0\n");
+        fprintf(hooks, "file-size-check:0\n");
+        fprintf(hooks, "character-limit:0\n");
+        fprintf(hooks, "time-limit:0\n");
+        fclose(hooks);
+
         return 0;
     }
 }
@@ -1564,4 +1578,103 @@ int merge(char* branch_name) {
     char HEAD[10]; strcpy(HEAD, "HEAD");
     checkout_commit(HEAD);
     return 0;
+}
+
+void list_all_hooks() {
+    printf("all hooks:\n");
+
+    char hooks_path[500] = ""; get_vics_folder(hooks_path);
+    strcat(hooks_path, "/hooks.txt");
+    FILE* hooks = fopen(hooks_path, "r");
+
+    char buffer[50];
+    while(fgets(buffer, sizeof(buffer), hooks)) {
+        int pos = strstr(buffer, ":") - buffer;
+        buffer[pos] = 0;
+        printf("%s\n", buffer);
+    }
+
+    fclose(hooks);
+}
+
+void list_applied_hooks() {
+    printf("applied hooks:\n");
+
+    char hooks_path[500] = ""; get_vics_folder(hooks_path);
+    strcat(hooks_path, "/hooks.txt");
+    FILE* hooks = fopen(hooks_path, "r");
+
+    char buffer[50];
+    while(fgets(buffer, sizeof(buffer), hooks)) {
+        int pos = strstr(buffer, ":") - buffer;
+        int applied; sscanf(buffer+pos+1, "%d", &applied);
+        buffer[pos] = 0;
+        if(applied) printf("%s\n", buffer);
+    }
+
+    fclose(hooks);
+}
+
+void add_hook(char* hook) {
+    char hooks_path[500] = ""; get_vics_folder(hooks_path);
+    char tmp_path[500] = ""; get_vics_folder(tmp_path);
+    strcat(hooks_path, "/hooks.txt");
+    strcat(tmp_path, "/tmp.txt");
+    FILE* hooks = fopen(hooks_path, "r");
+    FILE* tmp = fopen(tmp_path, "w");
+
+    char buffer[50];
+    while(fgets(buffer, sizeof(buffer), hooks)) {
+        int pos = strstr(buffer, ":") - buffer;
+        if(!strncmp(buffer, hook, pos)) {
+            fprintf(tmp, "%s:1\n", hook);
+        } else {
+            fprintf(tmp, "%s", buffer);
+        }
+    }
+    fclose(tmp);
+    fclose(hooks);
+
+    tmp = fopen(tmp_path, "r");
+    hooks = fopen(hooks_path, "w");
+
+    while(fgets(buffer, sizeof(buffer), tmp)) {
+        fprintf(hooks, "%s", buffer);
+    }
+    fclose(tmp); fclose(hooks);
+    remove(tmp_path);
+
+    printf("hook applied successfully.\n");
+} 
+
+void remove_hook(char* hook) {
+    char hooks_path[500] = ""; get_vics_folder(hooks_path);
+    char tmp_path[500] = ""; get_vics_folder(tmp_path);
+    strcat(hooks_path, "/hooks.txt");
+    strcat(tmp_path, "/tmp.txt");
+    FILE* hooks = fopen(hooks_path, "r");
+    FILE* tmp = fopen(tmp_path, "w");
+
+    char buffer[50];
+    while(fgets(buffer, sizeof(buffer), hooks)) {
+        int pos = strstr(buffer, ":") - buffer;
+        if(!strncmp(buffer, hook, pos)) {
+            fprintf(tmp, "%s:0\n", hook);
+        } else {
+            fprintf(tmp, "%s", buffer);
+        }
+    }
+    fclose(tmp);
+    fclose(hooks);
+
+    tmp = fopen(tmp_path, "r");
+    hooks = fopen(hooks_path, "w");
+
+    while(fgets(buffer, sizeof(buffer), tmp)) {
+        fprintf(hooks, "%s", buffer);
+    }
+    fclose(tmp); fclose(hooks);
+    remove(tmp_path);
+
+    printf("hook removed successfully.\n");
 }
