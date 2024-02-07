@@ -378,6 +378,7 @@ int main(int argc, char *argv[]) {
     }
 
     if(!strcmp(argv[1], "status")) {
+        printf("status of changes:\n");
         show_status();
         return 0;
     }
@@ -419,6 +420,29 @@ int main(int argc, char *argv[]) {
 
 
         TAG_END:
+        if(error) printf("an error occured.\n");
+        return 0;
+    }
+
+    if(!strcmp(argv[1], "grep")) {
+        int error = 0;
+        if(argc < 6 || strcmp(argv[2], "-f") || strcmp(argv[4], "-p")) {
+            printf("invalid usage of the command.\n");
+            error = 1;
+            goto GREP_END;
+        }
+
+        char commit_id[20]; sprintf(commit_id, "%03d%03d", cur_branch, cur_commit);
+        int another_commit = 0;
+        if(argc >= 8) {
+            strcpy(commit_id, argv[7]);
+            another_commit = 1;
+        }
+        int line_number = !strcmp(argv[argc-1], "-n");
+
+        error = grep(argv[3], argv[5], commit_id, another_commit, line_number);
+
+        GREP_END:
         if(error) printf("an error occured.\n");
         return 0;
     }

@@ -1432,3 +1432,36 @@ int show_tag(char* tag_name) {
     fclose(tag);
     return 0;
 }
+
+int grep(char* file, char* word, char* commit_id, int another_commit, int line_number) {
+
+    char absolute[500]; getcwd(absolute, sizeof(absolute));
+    strcat(absolute, "\\"); strcat(absolute, file);
+    char relative_path[500] = ""; get_relative_path(absolute, relative_path);
+
+    int commit_number = 100*(commit_id[3]-'0') + 10*(commit_id[4]-'0') + (commit_id[5]-'0');
+    char contents_path[500]; sprintf(contents_path, "%d/contents/%s", commit_number, relative_path);
+    char file_in_commit[500] = ""; get_commits_folder(file_in_commit);
+    strcat(file_in_commit, contents_path);
+    
+    if(!another_commit) strcpy(file_in_commit, file);
+
+    FILE* target = fopen(file_in_commit, "r");
+    if(target == NULL) {
+        printf("file path is invalid.\n");
+        return 1;
+    }
+
+    char buffer[1000];
+    int line = 1;
+    while(fgets(buffer, sizeof(buffer), target)) {
+        if(strstr(buffer, word) != NULL) {
+            if(line_number) printf("%3d. ", line);
+            printf("%s", buffer);
+        }
+        line++;
+    }
+
+    return 0;
+}
+// TODO: can be improved so we dont need to use checkout
