@@ -496,6 +496,24 @@ int info_incomplete() {
 
 }
 
+int first_commit(int branch_code) {
+    char branches[500] = ""; get_vics_folder(branches);
+    strcat(branches, "/branches.txt");
+
+    FILE* branch_list = fopen(branches, "r");
+    char buffer[100];
+    int res = -1;
+    while(fgets(buffer, sizeof(buffer), branch_list)) {
+        char* pos = strstr(buffer, ":");
+        if(!strncmp(BRANCHES[branch_code], buffer, pos-buffer)) {
+            int cmt; sscanf(pos+1, "%d", &cmt);
+            res = cmt; break;
+        }
+    }
+    fclose(branch_list);
+    return res;
+}
+
 int find_head(int branch_code) {
 
     char commits_folder[500] = ""; get_commits_folder(commits_folder);
@@ -508,13 +526,18 @@ int find_head(int branch_code) {
         if(is_file(commit_path) == 0) {
             strcat(commit_path, "/info.txt");
             FILE* info = fopen(commit_path, "r");
+            if(info == NULL) {
+                if(first_commit(branch_code) == 0) res = 0;
+                continue;
+            }
             char buffer[100];
             while(fgets(buffer, sizeof(buffer), info)) {
                 char* pos = strstr(buffer, ":");
                 if(!strncmp(buffer, "id", pos-buffer)) {
                     char id[20]; sscanf(pos+1, "%s", id);
                     int br = 100*(id[0]-'0') + 10*(id[1]-'0') + (id[2]-'0');
-                    if(br == branch_code) {
+                    int cmt = 100*(id[3]-'0') + 10*(id[4]-'0') + (id[5]-'0');
+                    if(br == branch_code || first_commit(branch_code) == cmt) {
                         int number; sscanf(entry->d_name, "%d", &number);
                         if(number > res) res = number;
                     }
@@ -1464,4 +1487,81 @@ int grep(char* file, char* word, char* commit_id, int another_commit, int line_n
 
     return 0;
 }
-// TODO: can be improved so we dont need to use checkout
+
+int merge(char* branch_name) {
+    int branch_idx = -1;
+    for(int i = 0 ; i < branch_count ; i++) {
+        if(!strcmp(BRANCHES[i], branch_name)) {
+            branch_idx = i; break;
+        }
+    }
+    
+    int head = find_head(branch_idx);
+    if(head == -1) {
+        printf("this branch have no commits or doesn't exist.\n");
+        return 1;
+    }
+
+    char commits_folder[500] = ""; get_commits_folder(commits_folder);
+    int last_commit;
+    char number_of_commits[500]; sprintf(number_of_commits, "%s/number-of-commits.txt", commits_folder);
+    FILE* f = fopen(number_of_commits, "r");
+    fscanf(f, "%d", &last_commit);
+    fclose(f);
+
+    last_commit++;
+
+    f = fopen(number_of_commits, "w");
+    fprintf(f, "%d\n", last_commit);
+    fclose(f);
+
+    char curs[500] = ""; get_vics_folder(curs); strcat(curs, "/currents.txt");
+    f = fopen(curs, "w");
+    fprintf(f, "commit:%d\n", last_commit);
+    fprintf(f, "branch:%d\n", cur_branch);
+    fclose(f);
+
+    char cur_path[500]; getcwd(cur_path, sizeof(cur_path));
+
+    chdir(commits_folder);
+
+    char new_commit[10]; sprintf(new_commit, "%d", last_commit);
+    mkdir(new_commit);
+    chdir(new_commit);
+
+    char head_contents[50]; sprintf(head_contents, "%d/contents", head);
+    char head_path[500] = ""; get_commits_folder(head_path);
+    strcat(head_path, head_contents);
+
+    recursive_copy(head_path);
+
+    chdir("contents");
+    char par_commit_path[500]; sprintf(par_commit_path, "../../%d/contents", cur_commit);
+    DIR* par_commit = opendir(par_commit_path);
+    struct dirent* entry;
+    while(entry = readdir(par_commit)) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        char file_path[500]; sprintf(file_path, "../../%d/contents/%s", cur_commit, entry->d_name);
+        recursive_copy(file_path);
+    }
+    closedir(par_commit);
+    chdir("..");
+
+    FILE* info = fopen("info.txt", "w");
+    fprintf(info, "message:branch %s merged into branch %s\n", branch_name, BRANCHES[cur_branch]);
+    time_t t = time(NULL);
+    struct tm tyme = *localtime(&t);
+    fprintf(info, "date-time:%d.%02d.%02d - %02d:%02d:%02d\n", tyme.tm_year + 1900, tyme.tm_mon+1, tyme.tm_mday, tyme.tm_hour, tyme.tm_min, tyme.tm_sec);
+    fprintf(info, "id:%03d%03d\n", cur_branch, last_commit);
+
+    char name[100] = "", email[100] = "";
+    get_name(name); get_email(email);
+    fprintf(info, "author:%s - %s\n", name, email);
+    fprintf(info, "files commited:0");
+    fclose(info);
+
+    chdir(cur_path);
+    char HEAD[10]; strcpy(HEAD, "HEAD");
+    checkout_commit(HEAD);
+    return 0;
+}

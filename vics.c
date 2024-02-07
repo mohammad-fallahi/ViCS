@@ -447,6 +447,21 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    if(!strcmp(argv[1], "merge")) {
+        int error;
+        if(argc != 3) {
+            printf("invalid usage of command.\n");
+            error = 1; goto MERGE_END;
+        }
+
+        error = merge(argv[2]);
+        if(!error) printf("branch %s merged into current branch(%s) successfully.\n", argv[2], BRANCHES[cur_branch]);
+
+        MERGE_END:
+        if(error) printf("an error occured.\n");
+        return 0;
+    }
+
     if(!run_alias(argv[1])) {
         printf("there is no command '%s'.\n", argv[1]);
     }
