@@ -1678,3 +1678,161 @@ void remove_hook(char* hook) {
 
     printf("hook removed successfully.\n");
 }
+
+int hook_char_limit(char* file_path) {
+    char file_name[30] = ""; extract_file_name(file_name, file_path);
+    char* pos = strstr(file_name, ".");
+    if(pos == NULL || (strcmp(pos, ".txt") && strcmp(pos, ".c") && strcmp(pos, ".cpp"))) {
+        return -1;
+    }
+    FILE* file = fopen(file_path, "r");
+    int cnt = 0;
+    char c;
+    do {
+        c = fgetc(file);
+        cnt++;
+    } while(c != EOF);
+    fclose(file);
+    return (cnt <= 20000);
+}
+
+int balance_braces(char* file_path) {
+    char file_name[30] = ""; extract_file_name(file_name, file_path);
+    char* pos = strstr(file_name, ".");
+    if(pos == NULL || (strcmp(pos, ".txt") && strcmp(pos, ".c") && strcmp(pos, ".cpp"))) {
+        return -1;
+    }
+    FILE* file = fopen(file_path, "r");
+    int a = 0, b = 0, c = 0;
+    char ch;
+    int res = 1;
+    do {
+        ch = fgetc(file);
+        if(ch == '[') a++;
+        if(ch == ']') a++;
+        if(ch == '{') b--;
+        if(ch == '}') b--;
+        if(ch == '(') c--;
+        if(ch == ')') c--;
+
+        if(a < 0 || b < 0 || c < 0) {
+            res = 0; break;
+        }
+
+    } while(ch != EOF);
+    fclose(file);
+
+    if(a > 0 || b > 0 || c > 0) res = 0;
+    return res;
+}
+
+int format_check(char* file_path) {
+    char file_name[30] = ""; extract_file_name(file_name, file_path);
+    char* pos = strstr(file_name, ".");
+    if(pos == NULL || (strcmp(pos, ".txt") && strcmp(pos, ".c") && strcmp(pos, ".cpp")) && strcmp(pos, ".py") && strcmp(pos, ".html") && strcmp(pos, ".css") && strcmp(pos, ".js") && strcmp(pos, ".tex")) {
+        return 0;
+    }
+    return 1;
+}
+
+int todo_check(char* file_path) {
+    char file_name[30] = ""; extract_file_name(file_name, file_path);
+    char* pos = strstr(file_name, ".");
+    if(pos == NULL || (strcmp(pos, ".txt") && strcmp(pos, ".c") && strcmp(pos, ".cpp"))) {
+        return -1;
+    }
+    FILE* file = fopen(file_path, "r");
+
+    char buffer[1000];
+    int res = 1;
+    while(fgets(buffer, sizeof(buffer), file)) {
+        if(!strcmp(pos, ".txt")) {
+            if(strstr(buffer, "TODO") != NULL) {
+                res = 0; break;
+            }
+        } else {
+            if(strstr(buffer, "//TODO") != NULL || strstr(buffer, "// TODO") != NULL) {
+                res = 0; break;
+            }
+        }
+    }
+
+    fclose(file);
+    return res;
+}
+
+int pre_commit() {
+
+    int final_result = 1;
+    char staging_path[500] = ""; get_staging_folder(staging_path);
+    DIR* staging_area = opendir(staging_path);
+    if(staging_area == NULL) printf("%s\n", staging_path);
+    struct dirent* entry;
+    while(entry = readdir(staging_area)) {
+        char file_path[500]; sprintf(file_path, "%s%s", staging_path, entry->d_name);
+        if(is_file(file_path) == 1) {
+            printf("%s:\n", entry->d_name);
+
+            char hooks_path[500] = ""; get_vics_folder(hooks_path);
+            strcat(hooks_path, "/hooks.txt");
+            FILE* hooks = fopen(hooks_path, "r");
+
+            char buffer[50];
+            while(fgets(buffer, sizeof(buffer), hooks)) {
+                char* pos = strstr(buffer, ":");
+                char hook_id[30]; strncpy(hook_id, buffer, pos-buffer); hook_id[pos-buffer] = 0;
+                int apply; sscanf(pos+1, "%d", &apply);
+                if(!apply) continue;
+                if(!strcmp(hook_id, "character-limit")) {
+                    printf("%s", hook_id);
+                    for(int i = 0 ; i < 40-strlen(hook_id) ; i++) printf(".");
+                    int res = hook_char_limit(file_path);
+                    if(res == 1) printf("PASSED\n");
+                    if(res == -1) printf("SKIPPED\n");
+                    if(res == 0) {
+                        printf("FAILED\n");
+                        final_result = 0;
+                    }
+                }
+                if(!strcmp(hook_id, "balance-braces")) {
+                    printf("%s", hook_id);
+                    for(int i = 0 ; i < 40-strlen(hook_id) ; i++) printf(".");
+                    int res = balance_braces(file_path);
+                    if(res == 1) printf("PASSED\n");
+                    if(res == -1) printf("SKIPPED\n");
+                    if(res == 0) {
+                        printf("FAILED\n");
+                        final_result = 0;
+                    }
+                }
+                if(!strcmp(hook_id, "format-check")) {
+                    printf("%s", hook_id);
+                    for(int i = 0 ; i < 40-strlen(hook_id) ; i++) printf(".");
+                    int res = format_check(file_path);
+                    if(res == 1) printf("PASSED\n");
+                    if(res == -1) printf("SKIPPED\n");
+                    if(res == 0) {
+                        printf("FAILED\n");
+                        final_result = 0;
+                    }
+                }
+                if(!strcmp(hook_id, "todo-check")) {
+                    printf("%s", hook_id);
+                    for(int i = 0 ; i < 40-strlen(hook_id) ; i++) printf(".");
+                    int res = todo_check(file_path);
+                    if(res == 1) printf("PASSED\n");
+                    if(res == -1) printf("SKIPPED\n");
+                    if(res == 0) {
+                        printf("FAILED\n");
+                        final_result = 0;
+                    }
+                }
+            }
+
+            fclose(hooks);
+        }
+    }
+
+    closedir(staging_area);
+    return final_result;
+}

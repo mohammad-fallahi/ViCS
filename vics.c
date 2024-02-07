@@ -477,9 +477,9 @@ int main(int argc, char *argv[]) {
             if(!strcmp(argv[2], "remove")) {
                 remove_hook(argv[4]);
             }
-
-
             
+        } else {
+            pre_commit();
         }
 
         return 0;
